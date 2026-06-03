@@ -1,13 +1,14 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package*.json turbo.json ./
+COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 
 RUN npm ci
 RUN cd packages/db && npx prisma generate
 RUN npm run build --workspace=apps/api
+RUN echo "=== ARQUIVOS GERADOS ===" && find apps/api/dist -type f | head -20
 
 FROM node:22-alpine AS runner
 WORKDIR /app

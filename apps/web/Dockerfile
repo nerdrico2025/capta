@@ -1,7 +1,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package*.json turbo.json ./
+COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
 COPY apps/web/ ./apps/web/
 
