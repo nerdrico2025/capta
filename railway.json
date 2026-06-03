@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.railway.com/railway.schema.json",
+  "services": {
+    "api": {
+      "dockerfilePath": "apps/api/Dockerfile",
+      "buildCommand": null,
+      "startCommand": null
+    },
+    "web": {
+      "dockerfilePath": "apps/web/Dockerfile",
+      "buildCommand": null,
+      "startCommand": null
+    }
+  }
+}
