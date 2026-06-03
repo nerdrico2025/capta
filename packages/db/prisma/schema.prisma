@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationSize {
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum OpportunityType {
+  EDITAL
+  LEI
+  PRIVADO
+}
+
+enum IngestStatus {
+  RUNNING
+  SUCCESS
+  ERROR
+}
+
+enum AlertType {
+  DAYS_15
+  DAYS_7
+  DAYS_1
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum OpportunityScope {
+  NATIONAL
+  STATE
+  MUNICIPAL
+}
+
+enum DataAlertType {
+  EXPIRED_NOT_DEACTIVATED
+  STALE_DATA
+  SCRAPE_FAILED
+  MISSING_SUMMARY
+}
+
+model Organization {
+  id        String           @id @default(cuid())
+  cnpj      String           @unique
+  name      String
+  areas     String[]
+  size      OrganizationSize
+  location  String
+  createdAt DateTime         @default(now())
+
+  alertPreference    AlertPreference?
+  alerts             Alert[]
+  savedOpportunities SavedOpportunity[]
+  pushSubscriptions  PushSubscription[]
+}
+
+model AlertPreference {
+  id               String   @id @default(cuid())
+  organizationId   String   @unique
+  email            String
+  areas            String[]
+  days             Int[]    @default([15, 7, 1])
+  emailEnabled     Boolean  @default(true)
+  unsubscribeToken String   @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([unsubscribeToken])
+}
+
+model Opportunity {
+  id         String          @id @default(cuid())
+  title      String
+  source     String
+  type       OpportunityType @default(EDITAL)
+  sourceType String          @default("api") // "api" | "scraper" | "manual"
+  sourceUrl  String          @unique
+  deadline   DateTime
+  value      Decimal         @db.Decimal(15, 2)
+  areas      String[]
+  summary    String
+  pdfUrl     String?
+  portalUrl  String
+  isActive           Boolean          @default(true)
+  scope              OpportunityScope @default(NATIONAL)
+  scopeLocation      String?
+  targetSizes        OrganizationSize[]
+  aiSummary          String?          // AI-generated plain-language summary
+  eligibleOrgProfile String?          // AI-generated eligible org profile
+  firstSteps         String[]         // AI-generated first steps
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  alerts             Alert[]
+  savedOpportunities SavedOpportunity[]
+  dataAlerts         DataAlert[]
+
+  @@index([deadline])
+  @@index([isActive])
+  @@index([type])
+  @@index([source])
+}
+
+model Alert {
+  id             String      @id @default(cuid())
+  organizationId String
+  opportunityId  String
+  triggerDays    Int
+  type           AlertType   @default(DAYS_7)
+  email          String?
+  status         AlertStatus @default(PENDING)
+  sentAt         DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, opportunityId, type])
+  @@index([organizationId])
+  @@index([opportunityId])
+  @@index([status])
+}
+
+model SavedOpportunity {
+  id             String   @id @default(cuid())
+  organizationId String
+  opportunityId  String
+  savedAt        DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, opportunityId])
+  @@index([organizationId])
+}
+
+model IngestLog {
+  id            String       @id @default(cuid())
+  source        String
+  status        IngestStatus @default(RUNNING)
+  startedAt     DateTime     @default(now())
+  finishedAt    DateTime?
+  itemsFound    Int          @default(0)
+  itemsUpserted Int          @default(0)
+  errorMessage  String?
+
+  @@index([source])
+  @@index([startedAt])
+}
+
+model PushSubscription {
+  id             String       @id @default(cuid())
+  organizationId String
+  endpoint       String       @unique
+  p256dh         String
+  auth           String
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model DataAlert {
+  id            String        @id @default(cuid())
+  opportunityId String
+  type          DataAlertType
+  message       String?
+  resolvedAt    DateTime?
+  createdAt     DateTime      @default(now())
+
+  opportunity   Opportunity   @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([type])
+  @@index([resolvedAt])
+  @@index([createdAt])
+}
