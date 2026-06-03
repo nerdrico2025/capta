@@ -20,4 +20,7 @@ COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/package.json ./package.json
 
 EXPOSE 3001
+
+RUN find /app -name "*.js" -maxdepth 4 | head -30 || true
+
 CMD ["node", "dist/index.js"]
