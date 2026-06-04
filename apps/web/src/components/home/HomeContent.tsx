@@ -79,10 +79,7 @@ export function HomeContent() {
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
-  const [areas, setAreas] = useState<string[]>(() => {
-    const a = searchParams.get('area');
-    return a ? a.split(',') : [];
-  });
+  const [area, setArea] = useState(searchParams.get('area') ?? '');
   const [type, setType] = useState<OpportunityFilterType>(
     (searchParams.get('type') as OpportunityFilterType) ?? '',
   );
@@ -94,7 +91,7 @@ export function HomeContent() {
 
   const filters = {
     search: search || undefined,
-    area: areas.length > 0 ? areas.join(',') : undefined,
+    area: area || undefined,
     type: type || undefined,
     deadline: sort,
     page,
@@ -122,10 +119,10 @@ export function HomeContent() {
     updateUrl({ search: inputValue || null });
   }
 
-  function handleAreaChange(next: string[]) {
-    setAreas(next);
+  function handleAreaChange(next: string) {
+    setArea(next);
     setPage(1);
-    updateUrl({ area: next.join(',') || null });
+    updateUrl({ area: next || null });
   }
 
   function handleTypeChange(next: OpportunityFilterType) {
@@ -142,7 +139,7 @@ export function HomeContent() {
 
   const opportunities = data?.data ?? [];
   const meta = data?.meta;
-  const hasFilters = Boolean(search || areas.length || type);
+  const hasFilters = Boolean(search || area || type);
 
   return (
     <div className="bg-background min-h-screen">
@@ -169,9 +166,12 @@ export function HomeContent() {
       {/* ── Filters bar ────────────────────────────────────────────────── */}
       <div className="bg-background/95 sticky top-16 z-30 border-b border-gray-100 backdrop-blur-sm">
         <div className="container-content space-y-3 py-3">
-          {/* Type tabs + sort */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <TypeFilterTabs selected={type} onChange={handleTypeChange} />
+          {/* Type tabs */}
+          <TypeFilterTabs selected={type} onChange={handleTypeChange} />
+
+          {/* Área + Ordenar */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <AreaFilterChips selected={area} onChange={handleAreaChange} />
 
             <div className="flex items-center gap-2">
               <label htmlFor="sort" className="shrink-0 text-sm font-medium text-gray-500">
@@ -181,16 +181,13 @@ export function HomeContent() {
                 id="sort"
                 value={sort}
                 onChange={(e) => handleSortChange(e.target.value as DeadlineSort)}
-                className="focus:border-primary focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
               >
                 <option value="asc">Prazo: mais urgente</option>
                 <option value="desc">Prazo: mais distante</option>
               </select>
             </div>
           </div>
-
-          {/* Area chips */}
-          <AreaFilterChips selected={areas} onChange={handleAreaChange} />
         </div>
       </div>
 

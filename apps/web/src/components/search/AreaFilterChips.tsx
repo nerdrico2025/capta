@@ -1,7 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/cn';
-
 const AREAS = [
   'cultura',
   'educação',
@@ -17,52 +15,29 @@ const AREAS = [
 ];
 
 interface AreaFilterChipsProps {
-  selected: string[];
-  onChange: (areas: string[]) => void;
+  selected: string;
+  onChange: (area: string) => void;
 }
 
 export function AreaFilterChips({ selected, onChange }: AreaFilterChipsProps) {
-  function toggle(area: string) {
-    if (selected.includes(area)) {
-      onChange(selected.filter((a) => a !== area));
-    } else {
-      onChange([...selected, area]);
-    }
-  }
-
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="shrink-0 text-sm font-medium text-gray-500">Área:</span>
-      <div className="flex flex-wrap gap-2">
-        {AREAS.map((area) => {
-          const active = selected.includes(area);
-          return (
-            <button
-              key={area}
-              type="button"
-              onClick={() => toggle(area)}
-              aria-pressed={active}
-              className={cn(
-                'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-all',
-                active
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'hover:border-primary hover:text-primary border border-gray-200 bg-white text-gray-600',
-              )}
-            >
-              {area}
-            </button>
-          );
-        })}
-      </div>
-      {selected.length > 0 && (
-        <button
-          type="button"
-          onClick={() => onChange([])}
-          className="shrink-0 text-xs text-gray-400 underline transition-colors hover:text-gray-600"
-        >
-          Limpar
-        </button>
-      )}
+    <div className="flex items-center gap-2">
+      <label htmlFor="area-filter" className="shrink-0 text-sm font-medium text-gray-500">
+        Área:
+      </label>
+      <select
+        id="area-filter"
+        value={selected}
+        onChange={(e) => onChange(e.target.value)}
+        className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
+      >
+        <option value="">Todas as áreas</option>
+        {AREAS.map((area) => (
+          <option key={area} value={area} className="capitalize">
+            {area.charAt(0).toUpperCase() + area.slice(1)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
