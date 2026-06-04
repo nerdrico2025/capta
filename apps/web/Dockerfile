@@ -5,6 +5,9 @@ COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
 COPY apps/web/ ./apps/web/
 
+# Não baixar o Chromium do Puppeteer
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 RUN npm ci
 RUN npm run build --workspace=apps/web
 

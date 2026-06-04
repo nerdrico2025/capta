@@ -1,24 +1,27 @@
 FROM node:22-alpine
 WORKDIR /app
 
-# Instala dependências do sistema necessárias para alguns pacotes nativos
+# Dependências do sistema para pacotes nativos (openssl para Prisma)
 RUN apk add --no-cache openssl
 
-# Copia tudo necessário para o monorepo funcionar
+# Não baixar o Chromium do Puppeteer em produção
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
+# Copia tudo necessário para o monorepo
 COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 
-# Instala TODAS as dependências (incluindo dev para o build)
+# Instala todas as dependências (dev incluída, necessária para o build)
 RUN npm ci
 
-# Gera o Prisma client
-RUN cd packages/db && npx prisma generate
+# Gera o Prisma client com o caminho explícito do schema
+RUN npx prisma generate --schema=packages/db/prisma/schema.prisma
 
 # Compila o TypeScript
 RUN npm run build --workspace=apps/api
 
-# Remove devDependencies para reduzir tamanho
+# Remove devDependencies para imagem mais leve
 RUN npm prune --production
 
 ENV NODE_ENV=production

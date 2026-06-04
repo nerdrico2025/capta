@@ -1,4 +1,4 @@
-import type { OrganizationSize, OpportunityScope } from '@prisma/client';
+import type { OrganizationSize, OpportunityScope } from '@capta/db';
 
 export type CompatibilityLevel = 'ALTO' | 'MEDIO' | 'BAIXO';
 

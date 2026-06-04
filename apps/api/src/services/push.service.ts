@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, PushSubscription } from '@capta/db';
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? '';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? '';
@@ -40,7 +40,7 @@ export async function sendPushToOrg(
   let failed = 0;
 
   await Promise.all(
-    subscriptions.map(async (sub) => {
+    subscriptions.map(async (sub: PushSubscription) => {
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },

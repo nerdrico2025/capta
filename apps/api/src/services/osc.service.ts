@@ -1,5 +1,5 @@
 import type { Redis } from 'ioredis';
-import type { OrganizationSize } from '@prisma/client';
+import type { OrganizationSize } from '@capta/db';
 import { cnaesToAreas } from '../utils/cnae-to-area.js';
 
 // Brasil API — dados públicos da Receita Federal via CNPJ
