@@ -4,6 +4,33 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { Opportunity } from '@/types/api';
 import { getDeadlineInfo, formatValue } from '@/lib/format';
+
+const MINOR_WORDS = new Set([
+  'e',
+  'de',
+  'a',
+  'o',
+  'do',
+  'da',
+  'dos',
+  'das',
+  'em',
+  'no',
+  'na',
+  'por',
+  'com',
+  'para',
+  'ao',
+  'às',
+]);
+function toTitleCase(str: string): string {
+  return str
+    .split(' ')
+    .map((word, i) =>
+      i === 0 || !MINOR_WORDS.has(word) ? word.charAt(0).toUpperCase() + word.slice(1) : word,
+    )
+    .join(' ');
+}
 import { SourceBadge } from '@/components/ui/SourceBadge';
 import { cn } from '@/lib/cn';
 
@@ -78,7 +105,9 @@ export function OpportunityCard({ opportunity: opp }: OpportunityCardProps) {
       {/* Deadline + value */}
       <div className="flex items-center gap-3 px-5 pb-3">
         <DeadlinePill deadline={opp.deadline} />
-        <span className="text-primary text-sm font-bold">{formatValue(opp.value)}</span>
+        {opp.value != null && opp.value !== 0 && (
+          <span className="text-primary text-sm font-bold">{formatValue(opp.value)}</span>
+        )}
       </div>
 
       {/* Areas */}
@@ -87,9 +116,9 @@ export function OpportunityCard({ opportunity: opp }: OpportunityCardProps) {
           {opp.areas.slice(0, 3).map((area) => (
             <span
               key={area}
-              className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs capitalize text-gray-600"
+              className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600"
             >
-              {area}
+              {toTitleCase(area)}
             </span>
           ))}
           {opp.areas.length > 3 && (

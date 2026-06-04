@@ -1,5 +1,30 @@
 'use client';
 
+const MINOR = new Set([
+  'e',
+  'de',
+  'a',
+  'o',
+  'do',
+  'da',
+  'dos',
+  'das',
+  'em',
+  'no',
+  'na',
+  'por',
+  'com',
+  'para',
+  'ao',
+  'às',
+]);
+function toTitleCase(str: string): string {
+  return str
+    .split(' ')
+    .map((w, i) => (i === 0 || !MINOR.has(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ');
+}
+
 const AREAS = [
   'cultura',
   'educação',
@@ -33,8 +58,8 @@ export function AreaFilterChips({ selected, onChange }: AreaFilterChipsProps) {
       >
         <option value="">Todas as áreas</option>
         {AREAS.map((area) => (
-          <option key={area} value={area} className="capitalize">
-            {area.charAt(0).toUpperCase() + area.slice(1)}
+          <option key={area} value={area}>
+            {toTitleCase(area)}
           </option>
         ))}
       </select>
