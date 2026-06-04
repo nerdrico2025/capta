@@ -21,6 +21,16 @@ export interface EnrichmentOutput {
   firstSteps: string[];
 }
 
+export interface ExtractedOpportunity {
+  title: string;
+  deadline: Date | null;
+  value: number;
+  areas: string[];
+  type: 'EDITAL' | 'LEI' | 'PRIVADO';
+  sourceUrl: string;
+  summary: string;
+}
+
 export class EnrichmentService {
   private readonly client: OpenAI | null;
   private readonly rateLimiter: RateLimiter;
@@ -78,12 +88,138 @@ export class EnrichmentService {
       console.warn(`[enrichment] Failed for opportunity ${opportunityId}:`, err);
     }
   }
+
+  async extractFromFreeText(
+    htmlBlock: string,
+    postDate: string,
+  ): Promise<ExtractedOpportunity | null> {
+    const text = htmlBlock
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!this.client) {
+      return extractFromFreeTextFallback(text, postDate);
+    }
+
+    await this.rateLimiter.acquire();
+
+    const prompt = `Você é um assistente que extrai dados estruturados de textos sobre editais e chamadas públicas para o terceiro setor brasileiro.
+
+Texto de um edital:
+"""
+${text.slice(0, 1500)}
+"""
+
+Extraia APENAS um JSON válido com esta estrutura (sem markdown):
+{
+  "title": "título do edital",
+  "deadline": "YYYY-MM-DD ou null se não encontrado",
+  "value": número em reais (0 se não informado),
+  "areas": ["área1", "área2"],
+  "type": "EDITAL" ou "PRIVADO" (PRIVADO se for de fundação/empresa privada),
+  "sourceUrl": "URL mencionada no texto ou string vazia",
+  "summary": "1-2 frases resumindo o edital"
+}
+
+Para areas, use APENAS estas opções: educação, saúde, cultura, esporte, meio ambiente, assistência social, segurança alimentar, direitos humanos, desenvolvimento urbano, ciência e tecnologia, trabalho e renda.`;
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: MODEL,
+        max_tokens: 400,
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const raw = response.choices[0].message.content ?? '';
+      const clean = raw
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+      const parsed = JSON.parse(clean) as Partial<ExtractedOpportunity> & {
+        deadline?: string | null;
+      };
+
+      if (!parsed.title?.trim()) return null;
+
+      const deadline = parsed.deadline ? new Date(parsed.deadline) : null;
+
+      return {
+        title: String(parsed.title).trim(),
+        deadline: deadline && !isNaN(deadline.getTime()) ? deadline : null,
+        value: Number(parsed.value) || 0,
+        areas: Array.isArray(parsed.areas) ? parsed.areas.map(String) : [],
+        type: parsed.type === 'PRIVADO' ? 'PRIVADO' : 'EDITAL',
+        sourceUrl: String(parsed.sourceUrl ?? '').trim(),
+        summary: String(parsed.summary ?? '').trim(),
+      };
+    } catch {
+      return extractFromFreeTextFallback(text, postDate);
+    }
+  }
 }
 
 // Singleton — shared across collectors to enforce the global rate limit
 export const enrichmentService = new EnrichmentService();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function extractFromFreeTextFallback(text: string, _postDate: string): ExtractedOpportunity | null {
+  // Título: primeiro trecho antes de ponto ou até 120 chars
+  const titleMatch = text.match(/^([^\n.]{10,120})/);
+  if (!titleMatch) return null;
+  const title = titleMatch[1].trim();
+
+  // Prazo: "até DD de mês de AAAA" ou "até DD/MM/AAAA"
+  const MONTH: Record<string, string> = {
+    janeiro: '01',
+    fevereiro: '02',
+    março: '03',
+    marco: '03',
+    abril: '04',
+    maio: '05',
+    junho: '06',
+    julho: '07',
+    agosto: '08',
+    setembro: '09',
+    outubro: '10',
+    novembro: '11',
+    dezembro: '12',
+  };
+  let deadline: Date | null = null;
+  const mPt = text.match(/até\s+(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+  if (mPt) {
+    const mm = MONTH[mPt[2].toLowerCase()];
+    if (mm) deadline = new Date(`${mPt[3]}-${mm}-${mPt[1].padStart(2, '0')}`);
+  }
+  if (!deadline) {
+    const mSlash = text.match(/até\s+(\d{2})\/(\d{2})\/(\d{4})/i);
+    if (mSlash) deadline = new Date(`${mSlash[3]}-${mSlash[2]}-${mSlash[1]}`);
+  }
+
+  // Valor: "R$ X.XXX" ou "até R$ X mil"
+  let value = 0;
+  const mVal = text.match(/R\$\s*([\d.,]+)\s*(?:mil)?/i);
+  if (mVal) {
+    const raw = mVal[1].replace(/\./g, '').replace(',', '.');
+    value =
+      parseFloat(raw) *
+      (text.slice(mVal.index ?? 0, (mVal.index ?? 0) + 30).includes('mil') ? 1000 : 1);
+  }
+
+  // URL
+  const mUrl = text.match(/https?:\/\/[^\s)>]+/);
+  const sourceUrl = mUrl ? mUrl[0] : '';
+
+  // Tipo: privado se mencionar fundação/instituto/empresa
+  const type: 'EDITAL' | 'PRIVADO' = /fundaç|instituto|empresa|corporat/i.test(text)
+    ? 'PRIVADO'
+    : 'EDITAL';
+
+  return { title, deadline, value, areas: [], type, sourceUrl, summary: text.slice(0, 200) };
+}
 
 function buildPrompt(input: EnrichmentInput): string {
   const text = input.fullText
