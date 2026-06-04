@@ -126,28 +126,9 @@ function parseValue(raw: string | number | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-function buildAreas(item: SalicRawItem): string[] {
-  const areas: string[] = [];
-
-  // In API v2 segmento is a flat string e.g. "Teatro Musical (c/ dramaturgia, danças e canções)"
-  if (item.segmento) {
-    const seg = item.segmento.trim().toLowerCase();
-    if (/teatro|dança|dan[cç]|música|música|canto|circo|literatura|arte/.test(seg)) {
-      areas.push('cultura');
-    } else if (/educação|escola|ensino/.test(seg)) {
-      areas.push('educação');
-    } else {
-      // Trim to clean area label (before parenthesis)
-      const clean = seg.split(/[(/]/)[0].trim();
-      if (clean) areas.push(clean);
-    }
-  }
-
-  if (areas.length === 0 && item.tipologia) {
-    areas.push(item.tipologia.trim().toLowerCase());
-  }
-
-  return [...new Set(areas)].filter(Boolean);
+// SALIC (Lei Rouanet) funds exclusively cultural projects — area is always 'cultura'.
+function buildAreas(_item: SalicRawItem): string[] {
+  return ['cultura'];
 }
 
 function buildSummary(item: SalicRawItem): string {

@@ -13,7 +13,7 @@ import { cn } from '@/lib/cn';
 const PRIMEIROS_PASSOS = [
   {
     icon: '📄',
-    title: 'Leia o edital completo',
+    title: 'Leia a documentação completa',
     description: 'Verifique todos os critérios de elegibilidade e requisitos do projeto.',
   },
   {

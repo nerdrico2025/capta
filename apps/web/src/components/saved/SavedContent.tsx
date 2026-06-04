@@ -49,7 +49,7 @@ async function exportToPDF(opportunities: Opportunity[]) {
   doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
   doc.text(
-    `Exportado em ${formatMonthYear()} via Capta  •  ${opportunities.length} edital${opportunities.length !== 1 ? 'is' : ''}`,
+    `Exportado em ${formatMonthYear()} via Capta  •  ${opportunities.length} oportunidade${opportunities.length !== 1 ? 's' : ''}`,
     14,
     41,
   );
@@ -220,7 +220,11 @@ function OpportunityRow({ opp }: { opp: Opportunity }) {
           href={`/opportunity/${opp.id}`}
           className="border-primary/30 text-primary hover:bg-primary hidden items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:text-white sm:inline-flex"
         >
-          Ver edital
+          {opp.type === 'LEI'
+            ? 'Ver projeto'
+            : opp.type === 'PRIVADO'
+              ? 'Ver oportunidade'
+              : 'Ver edital'}
           <svg
             className="h-3 w-3"
             fill="none"
@@ -259,7 +263,7 @@ function EmptyState() {
         </svg>
       </div>
       <h3 className="font-display text-lg font-semibold text-gray-800">
-        Nenhum edital salvo ainda
+        Nenhuma oportunidade salva ainda
       </h3>
       <p className="mt-2 max-w-xs text-sm text-gray-500">
         Explore as oportunidades disponíveis e salve as que têm mais a ver com sua organização.
@@ -353,7 +357,7 @@ export function SavedContent() {
               {name}
               {meta && (
                 <span className="bg-primary/8 text-primary ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold">
-                  {meta.total} {meta.total === 1 ? 'edital' : 'editais'}
+                  {meta.total} {meta.total === 1 ? 'oportunidade' : 'oportunidades'}
                 </span>
               )}
             </p>

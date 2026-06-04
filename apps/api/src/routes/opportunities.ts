@@ -196,6 +196,8 @@ export async function opportunityRoutes(app: FastifyInstance) {
 
       const where: Prisma.OpportunityWhereInput = {
         isActive: true,
+        // SALIC projects are already-approved fundraising phases of other orgs, not open calls
+        source: { not: 'SALIC' },
         ...(areas?.length && { areas: { hasSome: areas } }),
         ...(type && { type: type.toUpperCase() as Prisma.EnumOpportunityTypeFilter }),
         ...(search && {
@@ -430,12 +432,10 @@ export async function opportunityRoutes(app: FastifyInstance) {
       });
 
       if (existing) {
-        return reply
-          .status(409)
-          .send({
-            error: 'Already saved',
-            message: 'This opportunity is already saved for this organization',
-          });
+        return reply.status(409).send({
+          error: 'Already saved',
+          message: 'This opportunity is already saved for this organization',
+        });
       }
 
       const saved = await app.prisma.savedOpportunity.create({

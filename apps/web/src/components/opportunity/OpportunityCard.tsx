@@ -106,7 +106,11 @@ export function OpportunityCard({ opportunity: opp }: OpportunityCardProps) {
           href={`/opportunity/${opp.id}`}
           className="bg-primary-50 text-primary hover:bg-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors hover:text-white"
         >
-          Ver edital
+          {opp.type === 'LEI'
+            ? 'Ver projeto'
+            : opp.type === 'PRIVADO'
+              ? 'Ver oportunidade'
+              : 'Ver edital'}
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
             <path
               fillRule="evenodd"
