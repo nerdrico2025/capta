@@ -31,9 +31,9 @@ export function AreaFilterChips({ selected, onChange }: AreaFilterChipsProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex flex-wrap items-center gap-2">
       <span className="shrink-0 text-sm font-medium text-gray-500">Área:</span>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {AREAS.map((area) => {
           const active = selected.includes(area);
           return (
