@@ -6,10 +6,8 @@ import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
 const SOURCE = 'ITAU_SOCIAL';
-const PAGE_URL = 'https://www.itausocial.org.br/programas/';
+const PAGE_URL = 'https://www.itausocial.org.br/editais/';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
-const OPEN_KEYWORDS =
-  /inscri[çc][õo]es\s+abertas|prazo\s+de\s+inscri|edital|chamad[ao]\s+p[úu]blica?/i;
 
 const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
@@ -36,7 +34,6 @@ function extractBlocks(html: string): string[] {
       if (text.length < 80) return;
       const key = text.slice(0, 100);
       if (seen.has(key)) return;
-      if (!OPEN_KEYWORDS.test(text)) return;
       seen.add(key);
       blocks.push($(el).html() ?? text);
     });

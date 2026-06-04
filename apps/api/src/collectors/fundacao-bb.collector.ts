@@ -6,7 +6,7 @@ import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
 const SOURCE = 'FUNDACAO_BB';
-const PAGE_URL = 'https://www.fundacaobb.org.br/o-que-fazemos/editais/';
+const PAGE_URL = 'https://fbb.org.br/editais-de-projetos/editais-publicos/';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
 const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);

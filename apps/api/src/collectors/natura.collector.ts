@@ -6,7 +6,7 @@ import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
 const SOURCE = 'NATURA';
-const PAGE_URL = 'https://www.institutonaturaoficial.org.br/editais';
+const PAGE_URL = 'https://www.institutonatura.org.br/projetos/';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
 const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
