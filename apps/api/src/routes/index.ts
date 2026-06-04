@@ -28,5 +28,5 @@ export async function routes(app: FastifyInstance) {
   app.register(opportunityRoutes, { prefix: '/api/opportunities' });
   app.register(alertRoutes, { prefix: '/api/alerts' });
   app.register(pushRoutes, { prefix: '/api/push' });
-  app.register(adminRoutes, { prefix: '/admin' });
+  app.register(adminRoutes, { prefix: '/api/admin' });
 }
