@@ -5,11 +5,14 @@ import { upsertOpportunity } from './base.collector.js';
 import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
-const SOURCE = 'MAPA_OSC';
-const PAGE_URL = 'https://mapaosc.ipea.gov.br/editais';
+// Prosas — maior base de editais para OSCs do Brasil (13 mil oportunidades)
+// HTML com conteúdo no DOM, sem necessidade de Puppeteer.
+
+const SOURCE = 'PROSAS';
+const PAGE_URL = 'https://prosas.com.br/apps/editais';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
-const deadlineFallback = () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
 function slugify(text: string): string {
   return text
@@ -25,11 +28,12 @@ function extractBlocks(html: string): string[] {
   const seen = new Set<string>();
   const blocks: string[] = [];
 
-  // Site Drupal — prioridade para views-row, depois semânticos
   const selectors = [
-    '.views-row',
-    'article',
+    '.edital-card',
     '[class*="edital"]',
+    '[class*="opportunity"]',
+    '[class*="oportunidade"]',
+    'article',
     '[class*="card"]',
     '[class*="item"]',
   ];
@@ -49,7 +53,7 @@ function extractBlocks(html: string): string[] {
   return blocks.slice(0, 50);
 }
 
-export class MapaOscCollector {
+export class ProsasCollector {
   readonly source = SOURCE;
   private readonly rateLimiter = new RateLimiter(0.5);
 
