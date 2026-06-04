@@ -6,7 +6,7 @@ import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
 const SOURCE = 'ELAS';
-const PAGE_URL = 'https://www.fundosocialelas.org/editais';
+const CANDIDATE_URLS = ['https://fundosocialelas.org', 'https://www.fundosocialelas.org'];
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
 const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
@@ -63,7 +63,7 @@ export class ElasCollector {
     let errorMessage: string | undefined;
 
     try {
-      const html = await this.fetchPage();
+      const { html, finalUrl } = await this.fetchPage();
 
       if (html) {
         const blocks = extractBlocks(html);
@@ -78,7 +78,7 @@ export class ElasCollector {
             if (!extracted || !extracted.title || extracted.title.length < 10) continue;
             if (extracted.deadline && extracted.deadline < new Date()) continue;
 
-            const sourceUrl = extracted.sourceUrl ?? `${PAGE_URL}#${slugify(extracted.title)}`;
+            const sourceUrl = extracted.sourceUrl ?? `${finalUrl}#${slugify(extracted.title)}`;
 
             const mapped: MappedOpportunity = {
               title: extracted.title,
@@ -86,7 +86,7 @@ export class ElasCollector {
               type: 'PRIVADO',
               sourceType: 'scraper',
               sourceUrl,
-              portalUrl: PAGE_URL,
+              portalUrl: finalUrl,
               deadline: extracted.deadline ?? deadlineFallback(),
               value: extracted.value ?? 0,
               areas: extracted.areas,
@@ -128,21 +128,34 @@ export class ElasCollector {
     return { source: this.source, itemsFound, itemsUpserted, error: errorMessage };
   }
 
-  private async fetchPage(): Promise<string | null> {
+  private async fetchPage(): Promise<
+    { html: string; finalUrl: string } | { html: null; finalUrl: '' }
+  > {
     await this.rateLimiter.acquire();
 
-    const res = await fetch(PAGE_URL, {
-      signal: AbortSignal.timeout(30_000),
-      headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
-    });
+    for (const url of CANDIDATE_URLS) {
+      try {
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(30_000),
+          headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
+        });
 
-    if (res.status === 403 || res.status === 429) {
-      console.warn(`[${SOURCE}] HTTP ${res.status} — skipping`);
-      return null;
+        if (res.status === 403 || res.status === 429) {
+          console.warn(`[${SOURCE}] ${url} retornou ${res.status} — skipping`);
+          return { html: null, finalUrl: '' };
+        }
+
+        if (!res.ok) {
+          console.warn(`[${SOURCE}] ${url} retornou ${res.status}, tentando próxima...`);
+          continue;
+        }
+
+        return { html: await res.text(), finalUrl: url };
+      } catch (err) {
+        console.warn(`[${SOURCE}] ${url} falhou:`, err);
+      }
     }
 
-    if (!res.ok) throw new Error(`${SOURCE} respondeu ${res.status}`);
-
-    return res.text();
+    return { html: null, finalUrl: '' };
   }
 }

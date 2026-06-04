@@ -7,7 +7,7 @@ import { GifeCollector } from './gife.collector.js';
 import { ItauSocialCollector } from './itau-social.collector.js';
 import { FundacaoValeCollector } from './fundacao-vale.collector.js';
 import { FundacaoLemannCollector } from './fundacao-lemann.collector.js';
-import { NaturaCollector } from './natura.collector.js';
+
 import { ElasCollector } from './elas.collector.js';
 import { FundacaoBBCollector } from './fundacao-bb.collector.js';
 import type { CollectorResult } from './types.js';
@@ -31,7 +31,7 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     new ItauSocialCollector(),
     new FundacaoValeCollector(),
     new FundacaoLemannCollector(),
-    new NaturaCollector(),
+    // NaturaCollector desativado: Instituto Natura não publica editais abertos para OSCs externas
     new ElasCollector(),
     new FundacaoBBCollector(),
   ];
