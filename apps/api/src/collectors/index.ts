@@ -4,16 +4,37 @@ import type { PrismaClient } from '@prisma/client';
 import { SalicCollector } from './salic.collector.js';
 import { FinepCollector } from './finep.collector.js';
 import { GifeCollector } from './gife.collector.js';
+import { ItauSocialCollector } from './itau-social.collector.js';
+import { FundacaoValeCollector } from './fundacao-vale.collector.js';
+import { FundacaoLemannCollector } from './fundacao-lemann.collector.js';
+import { NaturaCollector } from './natura.collector.js';
+import { ElasCollector } from './elas.collector.js';
+import { FundacaoBBCollector } from './fundacao-bb.collector.js';
 import type { CollectorResult } from './types.js';
 
 export { SalicCollector } from './salic.collector.js';
 export { FinepCollector } from './finep.collector.js';
 export { GifeCollector } from './gife.collector.js';
+export { ItauSocialCollector } from './itau-social.collector.js';
+export { FundacaoValeCollector } from './fundacao-vale.collector.js';
+export { FundacaoLemannCollector } from './fundacao-lemann.collector.js';
+export { NaturaCollector } from './natura.collector.js';
+export { ElasCollector } from './elas.collector.js';
+export { FundacaoBBCollector } from './fundacao-bb.collector.js';
 export type { CollectorResult } from './types.js';
 
 export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorResult[]> {
   const standardCollectors = [new SalicCollector(), new FinepCollector()];
-  const allCollectors = [...standardCollectors, new GifeCollector()];
+  const allCollectors = [
+    ...standardCollectors,
+    new GifeCollector(),
+    new ItauSocialCollector(),
+    new FundacaoValeCollector(),
+    new FundacaoLemannCollector(),
+    new NaturaCollector(),
+    new ElasCollector(),
+    new FundacaoBBCollector(),
+  ];
 
   const settled = await Promise.allSettled(allCollectors.map((c) => c.run({ prisma })));
 
