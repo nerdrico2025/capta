@@ -1,4 +1,5 @@
 FROM node:22-alpine AS builder
+# cache-bust: 2026-06-04
 WORKDIR /app
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
