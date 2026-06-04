@@ -31,7 +31,7 @@ export function AreaFilterChips({ selected, onChange }: AreaFilterChipsProps) {
   }
 
   return (
-    <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto pb-1">
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <span className="shrink-0 text-sm font-medium text-gray-500">Área:</span>
       <div className="flex gap-2">
         {AREAS.map((area) => {
