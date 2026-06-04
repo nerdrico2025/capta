@@ -1,14 +1,14 @@
 import type { PrismaClient } from '@prisma/client';
-import { TransferegovCollector } from './transferegov.collector.js';
+// TransferegovCollector desativado: API pública não existe (Portal da Transparência
+// não expõe chamamentos; transferegov.sistema.gov.br e siconv.centralit.com.br estão fora do ar)
 import { SalicCollector } from './salic.collector.js';
 import type { CollectorResult } from './types.js';
 
-export { TransferegovCollector } from './transferegov.collector.js';
 export { SalicCollector } from './salic.collector.js';
 export type { CollectorResult } from './types.js';
 
 export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorResult[]> {
-  const collectors = [new TransferegovCollector(), new SalicCollector()];
+  const collectors = [new SalicCollector()];
 
   const results = await Promise.allSettled(collectors.map((c) => c.run({ prisma })));
 
