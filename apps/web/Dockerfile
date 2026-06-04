@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=https://captaapi-production.up.railway.app
 
 COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
