@@ -2,10 +2,14 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { enrichmentService } from '../services/enrichment.service.js';
+import { runIngestJob } from '../cron/ingest.job.js';
 
 const ADMIN_KEY = process.env.ADMIN_API_KEY ?? 'dev-admin-key';
 
 function requireAdminKey(req: { headers: Record<string, string | string[] | undefined> }): boolean {
+  // Aceita tanto "x-admin-key: <key>" quanto "Authorization: Bearer <key>"
+  const xKey = req.headers['x-admin-key'];
+  if (xKey === ADMIN_KEY) return true;
   const auth = req.headers['authorization'];
   return auth === `Bearer ${ADMIN_KEY}`;
 }
@@ -189,6 +193,30 @@ export async function adminRoutes(app: FastifyInstance) {
           successRateBySource,
         },
       });
+    },
+  );
+
+  // POST /admin/ingest — trigger ingest job manually
+  f.post(
+    '/ingest',
+    {
+      schema: {
+        tags: ['Admin'],
+        summary: 'Trigger ingest job manually (fire-and-forget)',
+        response: {
+          200: z.object({ started: z.boolean(), message: z.string() }),
+          401: z.object({ error: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      if (!requireAdminKey(req)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      void runIngestJob(app.prisma);
+
+      return reply.send({ started: true, message: 'Ingest job started in background' });
     },
   );
 
