@@ -1,14 +1,18 @@
-import chromium from '@sparticuz/chromium';
 import puppeteerCore from 'puppeteer-core';
 
 export async function fetchWithPuppeteer(url: string): Promise<string> {
-  const executablePath = await chromium.executablePath();
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH ?? '/usr/bin/chromium-browser';
 
   const browser = await puppeteerCore.launch({
-    args: chromium.args,
-    defaultViewport: { width: 1280, height: 800 },
     executablePath,
     headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--single-process',
+    ],
   });
 
   try {

@@ -1,9 +1,18 @@
 FROM node:22-alpine
 WORKDIR /app
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache \
+  openssl \
+  chromium \
+  nss \
+  freetype \
+  harfbuzz \
+  ca-certificates \
+  ttf-freefont
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
