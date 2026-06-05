@@ -131,7 +131,7 @@ function buildSummary(item: FinepChamada): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return clean.slice(0, 600) || `Chamada pública da FINEP: ${item.titulo ?? ''}`;
+  return clean.slice(0, 2000) || `Chamada pública da FINEP: ${item.titulo ?? ''}`;
 }
 
 export class FinepCollector extends BaseCollector {

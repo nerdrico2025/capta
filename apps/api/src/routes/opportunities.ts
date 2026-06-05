@@ -80,6 +80,7 @@ const LIST_SELECT = {
   value: true,
   areas: true,
   summary: true,
+  aiSummary: true,
   createdAt: true,
   scope: true,
   scopeLocation: true,
@@ -95,6 +96,7 @@ type ListRow = {
   value: Prisma.Decimal | null;
   areas: string[];
   summary: string;
+  aiSummary: string | null;
   createdAt: Date;
   scope: string;
   scopeLocation: string | null;
@@ -110,7 +112,7 @@ function toListItem(opp: ListRow, compatibility: z.infer<typeof CompatibilityRes
     deadline: opp.deadline.toISOString(),
     value: opp.value ? Number(opp.value) : null,
     areas: opp.areas,
-    summary: opp.summary,
+    summary: opp.aiSummary ?? opp.summary,
     createdAt: opp.createdAt.toISOString(),
     compatibility,
   };
@@ -404,6 +406,7 @@ export async function opportunityRoutes(app: FastifyInstance) {
 
       return reply.send({
         ...opp,
+        summary: opp.aiSummary ?? opp.summary,
         value: opp.value ? Number(opp.value) : null,
         compatibility: org ? calculateCompatibility(org, opp) : null,
       });
