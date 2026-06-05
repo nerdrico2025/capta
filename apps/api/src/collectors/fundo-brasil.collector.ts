@@ -6,7 +6,8 @@ import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
 const SOURCE = 'FUNDO_BRASIL';
-const PAGE_URL = 'https://www.fundobrasil.org.br/editais/';
+// Homepage carousel shows editais with "Aberto"/"Encerrado" badges inside .swiper-slide
+const PAGE_URL = 'https://www.fundobrasil.org.br/';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
 const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
@@ -20,28 +21,19 @@ function slugify(text: string): string {
 
 function extractBlocks(html: string): Array<{ html: string; url: string | null }> {
   const $ = load(html);
-  $('nav, header, footer, script, style, noscript').remove();
-
-  const seen = new Set<string>();
   const blocks: Array<{ html: string; url: string | null }> = [];
 
-  const selectors = ['article', '.edital', '[class*="edital"]', '.post', 'h2 a'];
+  // Homepage has a swiper carousel; each .swiper-slide contains status badge + title + link
+  $('.swiper-slide').each((_, el) => {
+    const text = $(el).text().replace(/\s+/g, ' ').trim();
+    if (!text.toLowerCase().includes('aberto')) return;
+    const url = $(el).find('a[href*="/edital/"]').first().attr('href') ?? null;
+    const blockHtml = $(el).html() ?? text;
+    if (blockHtml.length < 30) return;
+    blocks.push({ html: blockHtml, url });
+  });
 
-  for (const sel of selectors) {
-    $(sel).each((_, el) => {
-      const text = $(el).text().replace(/\s+/g, ' ').trim();
-      if (text.length < 80) return;
-      const key = text.slice(0, 100);
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      const url = $(el).find('a').first().attr('href') ?? $(el).closest('a').attr('href') ?? null;
-      blocks.push({ html: $(el).html() ?? text, url });
-    });
-    if (blocks.length > 0) break;
-  }
-
-  return blocks.slice(0, 30);
+  return blocks.slice(0, 20);
 }
 
 export class FundoBrasilCollector {

@@ -128,7 +128,7 @@ export class OnuMulheresCollector {
     await this.rateLimiter.acquire();
 
     const res = await fetch(PAGE_URL, {
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(15_000),
       headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
     });
 
