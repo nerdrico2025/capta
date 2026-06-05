@@ -42,17 +42,20 @@ function settledToResult(
 }
 
 export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorResult[]> {
-  // SALIC roda isolado (23k registros, ~10 min) para não bloquear os demais
-  const salicPromise = new SalicCollector().run({ prisma }).catch((err) => {
-    const error = err instanceof Error ? err.message : String(err);
-    console.error('[collector:SALIC] Unhandled error:', err);
-    return { source: 'SALIC', itemsFound: 0, itemsUpserted: 0, error } as CollectorResult;
-  });
+  // Collectors lentos rodam isolados para não bloquear os Puppeteers
+  // SALIC: ~10 min (23k registros) | GIFE: ~5 min (75 itens × LLM)
+  const slowCollectors = [new SalicCollector(), new GifeCollector()];
+  const slowPromises = slowCollectors.map((c) =>
+    c.run({ prisma }).catch((err) => {
+      const error = err instanceof Error ? err.message : String(err);
+      console.error(`[collector:${c.source}] Unhandled error:`, err);
+      return { source: c.source, itemsFound: 0, itemsUpserted: 0, error } as CollectorResult;
+    }),
+  );
 
   // Collectors rápidos rodam em paralelo
   const parallelCollectors = [
     new FinepCollector(),
-    new GifeCollector(),
     new ItauSocialCollector(),
     new FundacaoValeCollector(),
     new FundacaoLemannCollector(),
@@ -83,7 +86,7 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     }
   }
 
-  const salicResult = await salicPromise;
+  const slowResults = await Promise.all(slowPromises);
 
-  return [salicResult, ...parallelResults, ...puppeteerResults];
+  return [...slowResults, ...parallelResults, ...puppeteerResults];
 }
