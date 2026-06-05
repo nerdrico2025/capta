@@ -1,4 +1,3 @@
-// TODO: spec truncada na criação — confirmar SOURCE, PAGE_URL e type antes de ativar
 import type { PrismaClient } from '@prisma/client';
 import { load } from 'cheerio';
 import { enrichmentService } from '../services/enrichment.service.js';
@@ -7,7 +6,7 @@ import { RateLimiter } from './rate-limiter.js';
 import type { CollectorResult, MappedOpportunity } from './types.js';
 
 const SOURCE = 'CAPTADORES';
-const PAGE_URL = 'https://www.captadores.org.br/editais/'; // confirmar URL
+const PAGE_URL = 'https://captadores.org.br/editais/';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
 const deadlineFallback = () => new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
@@ -26,7 +25,7 @@ function extractBlocks(html: string): Array<{ html: string; url: string | null }
   const seen = new Set<string>();
   const blocks: Array<{ html: string; url: string | null }> = [];
 
-  const selectors = ['article', '.post', '[class*="edital"]', '.entry', 'h2 a'];
+  const selectors = ['article', '.post', 'h2 a', '[class*="entry"]'];
 
   for (const sel of selectors) {
     $(sel).each((_, el) => {
