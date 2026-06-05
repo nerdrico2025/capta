@@ -33,7 +33,7 @@ const PRIMEIROS_PASSOS = [
     description: 'Descreva atividades, metas, cronograma e orçamento detalhados.',
   },
   {
-    icon: '✅',
+    icon: '⏰',
     title: 'Envie antes do prazo',
     description: 'Submeta a proposta com antecedência para evitar problemas técnicos.',
   },
@@ -132,7 +132,9 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
             {/* Summary */}
             <section className="shadow-card rounded-2xl border border-gray-100 bg-white p-6">
               <h2 className="font-display mb-3 text-lg font-semibold text-gray-900">Resumo</h2>
-              <p className="leading-relaxed text-gray-700">{opp.summary}</p>
+              <p className="overflow-visible whitespace-pre-wrap leading-relaxed text-gray-700">
+                {opp.summary}
+              </p>
 
               {/* Areas */}
               {opp.areas.length > 0 && (
@@ -187,15 +189,17 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
               </div>
             </div>
 
-            {/* Value */}
-            <div className="shadow-card rounded-2xl border border-gray-100 bg-white p-6">
-              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Valor estimado
-              </p>
-              <p className="font-display text-primary text-3xl font-bold">
-                {formatValue(opp.value)}
-              </p>
-            </div>
+            {/* Value — hidden when null or zero */}
+            {opp.value != null && opp.value !== 0 && (
+              <div className="shadow-card rounded-2xl border border-gray-100 bg-white p-6">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+                  Valor estimado
+                </p>
+                <p className="font-display text-primary text-3xl font-bold">
+                  {formatValue(opp.value)}
+                </p>
+              </div>
+            )}
 
             {/* CTAs */}
             <a
