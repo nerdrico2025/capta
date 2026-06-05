@@ -19,7 +19,26 @@ const TYPE_DOT: Record<OpportunityType, string> = {
   PRIVADO: 'bg-accent',
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  FINEP: 'FINEP',
+  GIFE: 'GIFE',
+  SALIC: 'Lei Rouanet',
+  FAPESP: 'FAPESP',
+  FAPERJ: 'FAPERJ',
+  FAPEMIG: 'FAPEMIG',
+  PROSAS: 'Prosas',
+  OBSERVATORIO_3SETOR: 'Obs. 3º Setor',
+  ESCOLA_ABERTA_3SETOR: 'Escola Aberta',
+  FUNDACAO_BB: 'Fundação BB',
+  FUNDACAO_VALE: 'Fundação Vale',
+  FUNDACAO_LEMANN: 'Fund. Lemann',
+  MINC: 'MinC',
+  ITAU_SOCIAL: 'Itaú Social',
+  ELAS: 'Fundo ELAS',
+};
+
 export function SourceBadge({ source, type, className }: SourceBadgeProps) {
+  const label = SOURCE_LABELS[source] ?? source;
   return (
     <span
       className={cn(
@@ -32,7 +51,7 @@ export function SourceBadge({ source, type, className }: SourceBadgeProps) {
         className={cn('h-1.5 w-1.5 rounded-full', TYPE_DOT[type] ?? TYPE_DOT.EDITAL)}
         aria-hidden
       />
-      {source}
+      {label}
     </span>
   );
 }

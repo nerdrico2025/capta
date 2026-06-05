@@ -14,10 +14,12 @@ const SOURCES = [
   'FUNDACAO_VALE',
   'FUNDACAO_LEMANN',
   'MINC',
+  'ITAU_SOCIAL',
+  'ELAS',
 ] as const;
 
 const SOURCE_LABELS: Record<string, string> = {
-  SALIC: 'SALIC',
+  SALIC: 'Lei Rouanet',
   FINEP: 'FINEP',
   GIFE: 'GIFE',
   FAPESP: 'FAPESP',
@@ -26,10 +28,12 @@ const SOURCE_LABELS: Record<string, string> = {
   PROSAS: 'Prosas',
   OBSERVATORIO_3SETOR: 'Obs. 3º Setor',
   ESCOLA_ABERTA_3SETOR: 'Escola Aberta',
-  FUNDACAO_BB: 'Fund. BB',
-  FUNDACAO_VALE: 'Fund. Vale',
+  FUNDACAO_BB: 'Fundação BB',
+  FUNDACAO_VALE: 'Fundação Vale',
   FUNDACAO_LEMANN: 'Fund. Lemann',
   MINC: 'MinC',
+  ITAU_SOCIAL: 'Itaú Social',
+  ELAS: 'Fundo ELAS',
 };
 
 interface SourceFilterChipsProps {
