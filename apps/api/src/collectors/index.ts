@@ -42,11 +42,15 @@ function settledToResult(
 }
 
 export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorResult[]> {
-  // Collectors que usam Puppeteer rodam em série para evitar OOM no Railway
-  const puppeteerCollectors = [new ProsasCollector(), new FapemigCollector()];
+  // SALIC roda isolado (23k registros, ~10 min) para não bloquear os demais
+  const salicPromise = new SalicCollector().run({ prisma }).catch((err) => {
+    const error = err instanceof Error ? err.message : String(err);
+    console.error('[collector:SALIC] Unhandled error:', err);
+    return { source: 'SALIC', itemsFound: 0, itemsUpserted: 0, error } as CollectorResult;
+  });
 
+  // Collectors rápidos rodam em paralelo
   const parallelCollectors = [
-    new SalicCollector(),
     new FinepCollector(),
     new GifeCollector(),
     new ItauSocialCollector(),
@@ -66,6 +70,8 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     settledToResult(r, parallelCollectors[i].source),
   );
 
+  // Puppeteer roda em série após os paralelos (um Chromium por vez)
+  const puppeteerCollectors = [new ProsasCollector(), new FapemigCollector()];
   const puppeteerResults: CollectorResult[] = [];
   for (const collector of puppeteerCollectors) {
     try {
@@ -77,5 +83,7 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     }
   }
 
-  return [...parallelResults, ...puppeteerResults];
+  const salicResult = await salicPromise;
+
+  return [salicResult, ...parallelResults, ...puppeteerResults];
 }
