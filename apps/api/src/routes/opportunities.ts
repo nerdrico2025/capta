@@ -106,11 +106,11 @@ function toListItem(opp: ListRow, compatibility: z.infer<typeof CompatibilityRes
     title: opp.title,
     source: opp.source,
     type: opp.type,
-    deadline: opp.deadline,
+    deadline: opp.deadline.toISOString(),
     value: opp.value ? Number(opp.value) : null,
     areas: opp.areas,
     summary: opp.summary,
-    createdAt: opp.createdAt,
+    createdAt: opp.createdAt.toISOString(),
     compatibility,
   };
 }
