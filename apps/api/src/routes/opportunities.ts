@@ -24,11 +24,11 @@ const OpportunityListItem = z.object({
   title: z.string(),
   source: z.string(),
   type: z.string(),
-  deadline: z.coerce.date(),
+  deadline: z.string(),
   value: z.number().nullable(),
   areas: z.array(z.string()),
   summary: z.string(),
-  createdAt: z.coerce.date(),
+  createdAt: z.string(),
   compatibility: CompatibilityResult,
 });
 
@@ -37,6 +37,7 @@ const OpportunityDetail = OpportunityListItem.extend({
   pdfUrl: z.string().nullable(),
   portalUrl: z.string(),
   isActive: z.boolean(),
+  deadline: z.coerce.date(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
