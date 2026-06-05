@@ -136,18 +136,32 @@ export class FaperjCollector {
   private async fetchPage(): Promise<string | null> {
     await this.rateLimiter.acquire();
 
-    const res = await fetch(PAGE_URL, {
-      signal: AbortSignal.timeout(30_000),
-      headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
-    });
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(PAGE_URL, {
+          signal: AbortSignal.timeout(30_000),
+          headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
+        });
 
-    if (res.status === 403 || res.status === 429) {
-      console.warn(`[${SOURCE}] HTTP ${res.status} — skipping`);
-      return null;
+        if (res.status === 403 || res.status === 429 || res.status >= 500) {
+          console.warn(`[${SOURCE}] HTTP ${res.status} — skipping`);
+          return null;
+        }
+
+        if (!res.ok) throw new Error(`${SOURCE} respondeu ${res.status}`);
+
+        return res.text();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (attempt < 3) {
+          console.warn(`[${SOURCE}] tentativa ${attempt} falhou (${msg}) — aguardando 2s`);
+          await new Promise((r) => setTimeout(r, 2_000));
+        } else {
+          console.warn(`[${SOURCE}] todas as tentativas falharam — site indisponível`);
+        }
+      }
     }
 
-    if (!res.ok) throw new Error(`${SOURCE} respondeu ${res.status}`);
-
-    return res.text();
+    return null;
   }
 }
