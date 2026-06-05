@@ -11,7 +11,7 @@ export default function CadastroPage() {
   return (
     <div className="bg-background min-h-screen">
       <Header />
-      <main className="px-4 py-12">
+      <main className="container-content py-12">
         <RegisterWizard />
       </main>
     </div>
