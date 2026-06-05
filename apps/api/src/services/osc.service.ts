@@ -36,15 +36,21 @@ interface BrasilApiCnpjResponse {
 export async function fetchOscProfile(cnpj: string, redis: Redis): Promise<OscProfile | null> {
   const cacheKey = `${CACHE_PREFIX}${cnpj}`;
 
-  const cached = await redis.get(cacheKey);
-  if (cached) {
-    return JSON.parse(cached) as OscProfile;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached) as OscProfile;
+  } catch {
+    // Redis unavailable — skip cache, proceed to API
   }
 
   const profile = await fetchFromBrasilApi(cnpj);
 
   if (profile) {
-    await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(profile));
+    try {
+      await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(profile));
+    } catch {
+      // Redis unavailable — skip cache write, return result anyway
+    }
   }
 
   return profile;
@@ -61,11 +67,7 @@ async function fetchFromBrasilApi(cnpj: string): Promise<OscProfile | null> {
     },
   });
 
-  if (response.status === 400 || response.status === 404) return null;
-
-  if (!response.ok) {
-    throw new Error(`Brasil API CNPJ error: ${response.status}`);
-  }
+  if (!response.ok) return null;
 
   const body = (await response.json()) as BrasilApiCnpjResponse;
 
