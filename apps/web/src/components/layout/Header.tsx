@@ -74,8 +74,11 @@ export function Header() {
           <Link href="/" className="hover:text-primary transition-colors">
             Oportunidades
           </Link>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <Link href={'/rouanet' as any} className="hover:text-primary transition-colors">
+            Lei Rouanet
+          </Link>
           {isOnboarded && (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             <Link
               href={'/opportunities/saved' as any}
               className="hover:text-primary transition-colors"

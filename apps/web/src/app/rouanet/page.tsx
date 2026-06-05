@@ -5,12 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { SearchBar } from '@/components/search/SearchBar';
 import { AreaFilterChips } from '@/components/search/AreaFilterChips';
-import { TypeFilterTabs } from '@/components/search/TypeFilterTabs';
-import { SourceFilterChips } from '@/components/search/SourceFilterChips';
 import { OpportunityCard } from '@/components/opportunity/OpportunityCard';
 import { OpportunityGridSkeleton } from '@/components/opportunity/OpportunityCardSkeleton';
 import { useOpportunities } from '@/hooks/useOpportunities';
-import type { DeadlineSort, OpportunityFilterType } from '@/types/api';
 import { cn } from '@/lib/cn';
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
@@ -33,12 +30,10 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
         </svg>
       </div>
       <h3 className="font-display text-lg font-semibold text-gray-700">
-        {hasFilters ? 'Nenhuma oportunidade encontrada' : 'Nenhuma oportunidade disponível'}
+        {hasFilters ? 'Nenhum projeto encontrado' : 'Nenhum projeto disponível'}
       </h3>
       <p className="mt-1 max-w-sm text-sm text-gray-500">
-        {hasFilters
-          ? 'Tente ajustar os filtros ou ampliar sua busca.'
-          : 'Volte em breve — novos editais são adicionados diariamente.'}
+        {hasFilters ? 'Tente ajustar os filtros ou ampliar sua busca.' : 'Volte em breve.'}
       </p>
     </div>
   );
@@ -64,7 +59,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
         </svg>
       </div>
       <h3 className="font-display text-lg font-semibold text-gray-700">Erro ao carregar</h3>
-      <p className="mt-1 text-sm text-gray-500">Não foi possível buscar as oportunidades.</p>
+      <p className="mt-1 text-sm text-gray-500">Não foi possível buscar os projetos.</p>
       <button
         onClick={onRetry}
         className="bg-primary hover:bg-primary-dark mt-4 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
@@ -75,29 +70,20 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function HomeContent() {
+export default function RouanetPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [area, setArea] = useState(searchParams.get('area') ?? '');
-  const [type, setType] = useState<OpportunityFilterType>(
-    (searchParams.get('type') as OpportunityFilterType) ?? '',
-  );
-  const [sort, setSort] = useState<DeadlineSort>(
-    (searchParams.get('deadline') as DeadlineSort) ?? 'asc',
-  );
-  const [source, setSource] = useState(searchParams.get('source') ?? '');
   const [page, setPage] = useState(Number(searchParams.get('page') ?? 1));
   const [inputValue, setInputValue] = useState(search);
 
   const filters = {
+    source: 'SALIC',
     search: search || undefined,
     area: area || undefined,
-    type: type || undefined,
-    deadline: sort,
-    source: source || undefined,
-    sourceExclude: source ? undefined : 'SALIC',
+    deadline: 'asc' as const,
     page,
     limit: 12,
   };
@@ -112,7 +98,8 @@ export function HomeContent() {
         else params.set(k, v);
       }
       params.set('page', '1');
-      router.push(`/?${params.toString()}`, { scroll: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(`/rouanet?${params.toString()}` as any, { scroll: false });
     },
     [router, searchParams],
   );
@@ -129,41 +116,28 @@ export function HomeContent() {
     updateUrl({ area: next || null });
   }
 
-  function handleTypeChange(next: OpportunityFilterType) {
-    setType(next);
-    setPage(1);
-    updateUrl({ type: next || null });
-  }
-
-  function handleSortChange(next: DeadlineSort) {
-    setSort(next);
-    setPage(1);
-    updateUrl({ deadline: next });
-  }
-
-  function handleSourceChange(next: string) {
-    setSource(next);
-    setPage(1);
-    updateUrl({ source: next || null });
-  }
-
   const opportunities = data?.data ?? [];
   const meta = data?.meta;
-  const hasFilters = Boolean(search || area || type || source);
+  const hasFilters = Boolean(search || area);
 
   return (
     <div className="bg-background min-h-screen">
       <Header />
 
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section className="from-primary-50 to-background bg-gradient-to-b pb-8 pt-12">
+      {/* Hero */}
+      <section className="to-background bg-gradient-to-b from-purple-50 pb-8 pt-12">
         <div className="container-content">
           <div className="mx-auto max-w-2xl text-center">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-purple-600" aria-hidden />
+              Lei Rouanet
+            </span>
             <h1 className="font-display text-balance text-3xl font-bold text-gray-900 sm:text-4xl">
-              Encontre recursos públicos para <span className="text-primary">sua organização</span>
+              Projetos culturais para captação
             </h1>
             <p className="mt-3 text-base text-gray-600">
-              Editais, leis de incentivo e chamamentos públicos monitorados diariamente.
+              Projetos aprovados pelo MinC que buscam patrocinadores via incentivo fiscal. Empresas
+              podem deduzir até 100% do valor do IR.
             </p>
           </div>
 
@@ -173,46 +147,19 @@ export function HomeContent() {
         </div>
       </section>
 
-      {/* ── Filters bar ────────────────────────────────────────────────── */}
+      {/* Filters */}
       <div className="bg-background/95 sticky top-16 z-30 border-b border-gray-100 backdrop-blur-sm">
-        <div className="container-content space-y-3 py-3">
-          {/* Type tabs */}
-          <TypeFilterTabs selected={type} onChange={handleTypeChange} />
-
-          {/* Área + Fonte + Ordenar */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <AreaFilterChips selected={area} onChange={handleAreaChange} />
-              <SourceFilterChips selected={source} onChange={handleSourceChange} />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="sort" className="shrink-0 text-sm font-medium text-gray-500">
-                  Ordenar:
-                </label>
-                <select
-                  id="sort"
-                  value={sort}
-                  onChange={(e) => handleSortChange(e.target.value as DeadlineSort)}
-                  className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
-                >
-                  <option value="asc">Prazo: mais urgente</option>
-                  <option value="desc">Prazo: mais distante</option>
-                </select>
-              </div>
-            </div>
-          </div>
+        <div className="container-content py-3">
+          <AreaFilterChips selected={area} onChange={handleAreaChange} />
         </div>
       </div>
 
-      {/* ── Results ─────────────────────────────────────────────────────── */}
+      {/* Results */}
       <main className="container-content py-6">
-        {/* Count */}
         {!isLoading && meta && (
           <p className="mb-4 text-sm text-gray-500">
             <span className="font-semibold text-gray-700">{meta.total}</span>{' '}
-            {meta.total === 1 ? 'oportunidade encontrada' : 'oportunidades encontradas'}
+            {meta.total === 1 ? 'projeto encontrado' : 'projetos encontrados'}
           </p>
         )}
 
@@ -230,7 +177,6 @@ export function HomeContent() {
           </div>
         )}
 
-        {/* Pagination */}
         {meta && meta.pages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
@@ -245,11 +191,9 @@ export function HomeContent() {
             >
               ← Anterior
             </button>
-
             <span className="text-sm text-gray-500">
               {page} de {meta.pages}
             </span>
-
             <button
               onClick={() => setPage((p) => Math.min(meta.pages, p + 1))}
               disabled={page === meta.pages}

@@ -1,7 +1,6 @@
 'use client';
 
 const SOURCES = [
-  'SALIC',
   'FINEP',
   'GIFE',
   'FAPESP',
