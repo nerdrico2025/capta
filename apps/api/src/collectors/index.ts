@@ -17,6 +17,9 @@ import { FapemigCollector } from './fapemig.collector.js';
 import { Observatorio3SetorCollector } from './observatorio3setor.collector.js';
 import { MincCollector } from './minc.collector.js';
 import { EscolaAberta3SetorCollector } from './escola-aberta-3setor.collector.js';
+import { FundoBrasilCollector } from './fundo-brasil.collector.js';
+import { OnuMulheresCollector } from './onu-mulheres.collector.js';
+import { CaptadoresCollector } from './captadores.collector.js';
 import type { CollectorResult } from './types.js';
 
 export { SalicCollector } from './salic.collector.js';
@@ -37,6 +40,9 @@ export { BndesCollector } from './bndes.collector.js';
 export { MincCollector } from './minc.collector.js';
 export { UeBrasilCollector } from './ue-brasil.collector.js';
 export { EscolaAberta3SetorCollector } from './escola-aberta-3setor.collector.js';
+export { FundoBrasilCollector } from './fundo-brasil.collector.js';
+export { OnuMulheresCollector } from './onu-mulheres.collector.js';
+export { CaptadoresCollector } from './captadores.collector.js';
 export { SecSpCollector } from './sec-sp.collector.js';
 export { SecRjCollector } from './sec-rj.collector.js';
 export type { CollectorResult } from './types.js';
@@ -77,6 +83,9 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     new Observatorio3SetorCollector(),
     new MincCollector(),
     new EscolaAberta3SetorCollector(),
+    new FundoBrasilCollector(),
+    new OnuMulheresCollector(),
+    new CaptadoresCollector(),
   ];
 
   const parallelSettled = await Promise.allSettled(
