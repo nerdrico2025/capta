@@ -47,7 +47,10 @@ interface AreaFilterChipsProps {
 export function AreaFilterChips({ selected, onChange }: AreaFilterChipsProps) {
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="area-filter" className="shrink-0 text-sm font-medium text-gray-500">
+      <label
+        htmlFor="area-filter"
+        className="hidden shrink-0 text-sm font-medium text-gray-500 md:inline"
+      >
         Área:
       </label>
       <select
