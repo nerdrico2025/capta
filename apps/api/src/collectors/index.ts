@@ -31,10 +31,23 @@ export { FaperjCollector } from './faperj.collector.js';
 export { FapemigCollector } from './fapemig.collector.js';
 export type { CollectorResult } from './types.js';
 
+function settledToResult(
+  result: PromiseSettledResult<CollectorResult>,
+  source: string,
+): CollectorResult {
+  if (result.status === 'fulfilled') return result.value;
+  const error = result.reason instanceof Error ? result.reason.message : String(result.reason);
+  console.error(`[collector:${source}] Unhandled error:`, result.reason);
+  return { source, itemsFound: 0, itemsUpserted: 0, error };
+}
+
 export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorResult[]> {
-  const standardCollectors = [new SalicCollector(), new FinepCollector()];
-  const allCollectors = [
-    ...standardCollectors,
+  // Collectors que usam Puppeteer rodam em série para evitar OOM no Railway
+  const puppeteerCollectors = [new ProsasCollector(), new FapemigCollector()];
+
+  const parallelCollectors = [
+    new SalicCollector(),
+    new FinepCollector(),
     new GifeCollector(),
     new ItauSocialCollector(),
     new FundacaoValeCollector(),
@@ -42,22 +55,27 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     // NaturaCollector desativado: Instituto Natura não publica editais abertos para OSCs externas
     new ElasCollector(),
     new FundacaoBBCollector(),
-    new ProsasCollector(),
     new FapespCollector(),
     new FaperjCollector(),
-    new FapemigCollector(),
   ];
 
-  const settled = await Promise.allSettled(allCollectors.map((c) => c.run({ prisma })));
+  const parallelSettled = await Promise.allSettled(
+    parallelCollectors.map((c) => c.run({ prisma })),
+  );
+  const parallelResults = parallelSettled.map((r, i) =>
+    settledToResult(r, parallelCollectors[i].source),
+  );
 
-  return settled.map((result, i) => {
-    if (result.status === 'fulfilled') return result.value;
+  const puppeteerResults: CollectorResult[] = [];
+  for (const collector of puppeteerCollectors) {
+    try {
+      puppeteerResults.push(await collector.run({ prisma }));
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      console.error(`[collector:${collector.source}] Unhandled error:`, err);
+      puppeteerResults.push({ source: collector.source, itemsFound: 0, itemsUpserted: 0, error });
+    }
+  }
 
-    const source = allCollectors[i].source;
-    const error = result.reason instanceof Error ? result.reason.message : String(result.reason);
-
-    console.error(`[collector:${source}] Unhandled error:`, result.reason);
-
-    return { source, itemsFound: 0, itemsUpserted: 0, error };
-  });
+  return [...parallelResults, ...puppeteerResults];
 }
