@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useOrg } from '@/context/OrgContext';
 
 function OrgBadge({
@@ -42,8 +43,15 @@ function OrgBadge({
   );
 }
 
+const NAV_LINKS = [
+  { href: '/', label: 'Oportunidades' },
+  { href: '/rouanet', label: 'Lei Rouanet' },
+  { href: '/submit', label: 'Submeter Edital' },
+] as const;
+
 export function Header() {
   const { isOnboarded, name, cnpj, clearOrg } = useOrg();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/90 backdrop-blur-md">
@@ -69,16 +77,16 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Nav */}
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-6 text-sm font-medium text-gray-600 md:flex">
-          <Link href="/" className="hover:text-primary transition-colors">
-            Oportunidades
-          </Link>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Link href={'/rouanet' as any} className="hover:text-primary transition-colors">
-            Lei Rouanet
-          </Link>
+          {NAV_LINKS.map(({ href, label }) => (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            <Link key={href} href={href as any} className="hover:text-primary transition-colors">
+              {label}
+            </Link>
+          ))}
           {isOnboarded && (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             <Link
               href={'/opportunities/saved' as any}
               className="hover:text-primary transition-colors"
@@ -86,26 +94,89 @@ export function Header() {
               Meus Editais
             </Link>
           )}
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Link href={'/submit' as any} className="hover:text-primary transition-colors">
-            Submeter Edital
-          </Link>
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {isOnboarded ? (
             <OrgBadge name={name} cnpj={cnpj} onSignOut={clearOrg} />
           ) : (
             <Link
               href="/cadastro"
-              className="border-primary text-primary hover:bg-primary-50 rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors"
+              className="border-primary text-primary hover:bg-primary-50 hidden rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors md:inline-flex"
             >
               Cadastrar organização
             </Link>
           )}
+
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 md:hidden"
+          >
+            {menuOpen ? (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-5 w-5"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-5 w-5"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {menuOpen && (
+        <div className="border-t border-gray-100 bg-white px-4 py-3 md:hidden">
+          <nav className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href as any}
+                onClick={() => setMenuOpen(false)}
+                className="hover:text-primary hover:bg-primary-50 rounded-lg px-3 py-2.5 transition-colors"
+              >
+                {label}
+              </Link>
+            ))}
+            {isOnboarded && (
+              <Link
+                href={'/opportunities/saved' as any}
+                onClick={() => setMenuOpen(false)}
+                className="hover:text-primary hover:bg-primary-50 rounded-lg px-3 py-2.5 transition-colors"
+              >
+                Meus Editais
+              </Link>
+            )}
+            {!isOnboarded && (
+              <Link
+                href="/cadastro"
+                onClick={() => setMenuOpen(false)}
+                className="bg-primary mt-1 rounded-lg px-3 py-2.5 text-center font-semibold text-white"
+              >
+                Cadastrar organização
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

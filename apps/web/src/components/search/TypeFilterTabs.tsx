@@ -12,7 +12,7 @@ interface Tab {
 const TABS: Tab[] = [
   { value: '', label: 'Todos' },
   { value: 'edital', label: 'Editais', color: 'text-primary' },
-  { value: 'lei', label: 'Leis de Incentivo', color: 'text-purple-600' },
+  { value: 'lei', label: 'Incentivo Fiscal', color: 'text-purple-600' },
   { value: 'privado', label: 'Privado', color: 'text-accent-dark' },
 ];
 

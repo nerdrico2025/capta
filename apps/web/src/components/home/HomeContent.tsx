@@ -180,28 +180,26 @@ export function HomeContent() {
           <TypeFilterTabs selected={type} onChange={handleTypeChange} />
 
           {/* Área + Fonte + Ordenar */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <AreaFilterChips selected={area} onChange={handleAreaChange} />
-              <SourceFilterChips selected={source} onChange={handleSourceChange} />
-            </div>
+          {/* Área + Fonte: 2 colunas em mobile, inline em desktop */}
+          <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
+            <AreaFilterChips selected={area} onChange={handleAreaChange} />
+            <SourceFilterChips selected={source} onChange={handleSourceChange} />
+          </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="sort" className="shrink-0 text-sm font-medium text-gray-500">
-                  Ordenar:
-                </label>
-                <select
-                  id="sort"
-                  value={sort}
-                  onChange={(e) => handleSortChange(e.target.value as DeadlineSort)}
-                  className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
-                >
-                  <option value="asc">Prazo: mais urgente</option>
-                  <option value="desc">Prazo: mais distante</option>
-                </select>
-              </div>
-            </div>
+          {/* Ordenar: linha própria em mobile */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort" className="shrink-0 text-sm font-medium text-gray-500">
+              Ordenar:
+            </label>
+            <select
+              id="sort"
+              value={sort}
+              onChange={(e) => handleSortChange(e.target.value as DeadlineSort)}
+              className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
+            >
+              <option value="asc">Prazo: mais urgente</option>
+              <option value="desc">Prazo: mais distante</option>
+            </select>
           </div>
         </div>
       </div>
