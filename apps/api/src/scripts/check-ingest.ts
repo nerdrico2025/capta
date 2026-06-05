@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const logs = await prisma.ingestLog.findMany({
-  where: { source: { in: ['MINC', 'UE_BRASIL', 'ESCOLA_ABERTA_3SETOR'] } },
+  where: { source: { in: ['SEC_SP', 'SEC_RJ'] } },
   orderBy: { startedAt: 'desc' },
   take: 4,
 });
