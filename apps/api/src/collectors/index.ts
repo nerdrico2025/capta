@@ -15,9 +15,7 @@ import { FapespCollector } from './fapesp.collector.js';
 import { FaperjCollector } from './faperj.collector.js';
 import { FapemigCollector } from './fapemig.collector.js';
 import { Observatorio3SetorCollector } from './observatorio3setor.collector.js';
-import { BndesCollector } from './bndes.collector.js';
 import { MincCollector } from './minc.collector.js';
-import { UeBrasilCollector } from './ue-brasil.collector.js';
 import { EscolaAberta3SetorCollector } from './escola-aberta-3setor.collector.js';
 import type { CollectorResult } from './types.js';
 
@@ -76,7 +74,6 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     new FaperjCollector(),
     new Observatorio3SetorCollector(),
     new MincCollector(),
-    new UeBrasilCollector(),
     new EscolaAberta3SetorCollector(),
   ];
 
@@ -88,7 +85,7 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
   );
 
   // Puppeteer roda em série após os paralelos (um Chromium por vez)
-  const puppeteerCollectors = [new ProsasCollector(), new FapemigCollector(), new BndesCollector()];
+  const puppeteerCollectors = [new ProsasCollector(), new FapemigCollector()];
   const puppeteerResults: CollectorResult[] = [];
   for (const collector of puppeteerCollectors) {
     try {
