@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Header } from '@/components/layout/Header';
 import { RegisterWizard } from '@/components/cadastro/RegisterWizard';
 
 export const metadata: Metadata = {
@@ -8,8 +9,11 @@ export const metadata: Metadata = {
 
 export default function CadastroPage() {
   return (
-    <main className="bg-background min-h-screen px-4 py-12">
-      <RegisterWizard />
-    </main>
+    <div className="bg-background min-h-screen">
+      <Header />
+      <main className="px-4 py-12">
+        <RegisterWizard />
+      </main>
+    </div>
   );
 }
