@@ -202,7 +202,7 @@ export function HomeContent() {
                   onChange={(e) => handleExcludeSalicChange(e.target.checked)}
                   className="accent-primary h-4 w-4 rounded"
                 />
-                Excluir projetos SALIC
+                Apenas editais abertos
               </label>
 
               <div className="flex items-center gap-2">
