@@ -87,8 +87,18 @@ function SaveButton({ id: _id }: { id: string }) {
 }
 
 export function OpportunityCard({ opportunity: opp }: OpportunityCardProps) {
+  const isNew =
+    opp.createdAt != null && Date.now() - new Date(opp.createdAt).getTime() < 48 * 60 * 60 * 1000;
+
   return (
-    <article className="shadow-card hover:shadow-card-hover group flex flex-col rounded-2xl border border-gray-100 bg-white transition-all duration-200 hover:-translate-y-0.5">
+    <article className="shadow-card hover:shadow-card-hover group relative flex flex-col rounded-2xl border border-gray-100 bg-white transition-all duration-200 hover:-translate-y-0.5">
+      {/* Badge Novo */}
+      {isNew && (
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+          Novo
+        </span>
+      )}
+
       {/* Header row */}
       <div className="flex items-start justify-between p-5 pb-3">
         <SourceBadge source={opp.source} type={opp.type} />

@@ -44,6 +44,8 @@ export function fetchOpportunities(
   if (filters.area) params.set('area', filters.area);
   if (filters.type) params.set('type', filters.type);
   if (filters.deadline) params.set('deadline', filters.deadline);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.sourceExclude) params.set('source_exclude', filters.sourceExclude);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.limit) params.set('limit', String(filters.limit));
 

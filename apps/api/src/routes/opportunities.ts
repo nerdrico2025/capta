@@ -28,6 +28,7 @@ const OpportunityListItem = z.object({
   value: z.number().nullable(),
   areas: z.array(z.string()),
   summary: z.string(),
+  createdAt: z.coerce.date(),
   compatibility: CompatibilityResult,
 });
 
@@ -56,6 +57,8 @@ const ListQuery = z.object({
   type: z.enum(['edital', 'lei', 'privado']).optional(),
   deadline: z.enum(['asc', 'desc']).default('asc').describe('Ordenação por prazo'),
   search: z.string().optional().describe('Busca em título e resumo'),
+  source: z.string().optional().describe('Filtrar por fonte exata (ex: FINEP)'),
+  source_exclude: z.string().optional().describe('Excluir fonte (ex: SALIC)'),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -76,6 +79,7 @@ const LIST_SELECT = {
   value: true,
   areas: true,
   summary: true,
+  createdAt: true,
   scope: true,
   scopeLocation: true,
   targetSizes: true,
@@ -90,6 +94,7 @@ type ListRow = {
   value: Prisma.Decimal | null;
   areas: string[];
   summary: string;
+  createdAt: Date;
   scope: string;
   scopeLocation: string | null;
   targetSizes: string[];
@@ -105,6 +110,7 @@ function toListItem(opp: ListRow, compatibility: z.infer<typeof CompatibilityRes
     value: opp.value ? Number(opp.value) : null,
     areas: opp.areas,
     summary: opp.summary,
+    createdAt: opp.createdAt,
     compatibility,
   };
 }
@@ -184,7 +190,7 @@ export async function opportunityRoutes(app: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const { area, type, deadline, search, page, limit } = req.query;
+      const { area, type, deadline, search, source, source_exclude, page, limit } = req.query;
       const rawCnpj = req.headers['x-org-cnpj'];
 
       const areas = area
@@ -194,10 +200,15 @@ export async function opportunityRoutes(app: FastifyInstance) {
             .filter(Boolean)
         : undefined;
 
+      const sourceFilter: Prisma.StringFilter | string | undefined = source
+        ? source
+        : source_exclude
+          ? { not: source_exclude }
+          : undefined;
+
       const where: Prisma.OpportunityWhereInput = {
         isActive: true,
-        // SALIC projects are already-approved fundraising phases of other orgs, not open calls
-        source: { not: 'SALIC' },
+        ...(sourceFilter !== undefined && { source: sourceFilter }),
         ...(areas?.length && { areas: { hasSome: areas } }),
         ...(type && { type: type.toUpperCase() as Prisma.EnumOpportunityTypeFilter }),
         ...(search && {

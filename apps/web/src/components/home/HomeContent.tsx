@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { SearchBar } from '@/components/search/SearchBar';
 import { AreaFilterChips } from '@/components/search/AreaFilterChips';
 import { TypeFilterTabs } from '@/components/search/TypeFilterTabs';
+import { SourceFilterChips } from '@/components/search/SourceFilterChips';
 import { OpportunityCard } from '@/components/opportunity/OpportunityCard';
 import { OpportunityGridSkeleton } from '@/components/opportunity/OpportunityCardSkeleton';
 import { useOpportunities } from '@/hooks/useOpportunities';
@@ -86,6 +87,8 @@ export function HomeContent() {
   const [sort, setSort] = useState<DeadlineSort>(
     (searchParams.get('deadline') as DeadlineSort) ?? 'asc',
   );
+  const [source, setSource] = useState(searchParams.get('source') ?? '');
+  const [excludeSalic, setExcludeSalic] = useState(searchParams.get('exclude_salic') !== 'false');
   const [page, setPage] = useState(Number(searchParams.get('page') ?? 1));
   const [inputValue, setInputValue] = useState(search);
 
@@ -94,6 +97,8 @@ export function HomeContent() {
     area: area || undefined,
     type: type || undefined,
     deadline: sort,
+    source: source || undefined,
+    sourceExclude: !source && excludeSalic ? 'SALIC' : undefined,
     page,
     limit: 12,
   };
@@ -137,9 +142,21 @@ export function HomeContent() {
     updateUrl({ deadline: next });
   }
 
+  function handleSourceChange(next: string) {
+    setSource(next);
+    setPage(1);
+    updateUrl({ source: next || null });
+  }
+
+  function handleExcludeSalicChange(next: boolean) {
+    setExcludeSalic(next);
+    setPage(1);
+    updateUrl({ exclude_salic: next ? null : 'false' });
+  }
+
   const opportunities = data?.data ?? [];
   const meta = data?.meta;
-  const hasFilters = Boolean(search || area || type);
+  const hasFilters = Boolean(search || area || type || source);
 
   return (
     <div className="bg-background min-h-screen">
@@ -169,23 +186,39 @@ export function HomeContent() {
           {/* Type tabs */}
           <TypeFilterTabs selected={type} onChange={handleTypeChange} />
 
-          {/* Área + Ordenar */}
+          {/* Área + Fonte + Ordenar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <AreaFilterChips selected={area} onChange={handleAreaChange} />
+            <div className="flex flex-wrap items-center gap-3">
+              <AreaFilterChips selected={area} onChange={handleAreaChange} />
+              <SourceFilterChips selected={source} onChange={handleSourceChange} />
+            </div>
 
-            <div className="flex items-center gap-2">
-              <label htmlFor="sort" className="shrink-0 text-sm font-medium text-gray-500">
-                Ordenar:
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Toggle excluir SALIC */}
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-500">
+                <input
+                  type="checkbox"
+                  checked={excludeSalic}
+                  onChange={(e) => handleExcludeSalicChange(e.target.checked)}
+                  className="accent-primary h-4 w-4 rounded"
+                />
+                Excluir projetos SALIC
               </label>
-              <select
-                id="sort"
-                value={sort}
-                onChange={(e) => handleSortChange(e.target.value as DeadlineSort)}
-                className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
-              >
-                <option value="asc">Prazo: mais urgente</option>
-                <option value="desc">Prazo: mais distante</option>
-              </select>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="sort" className="shrink-0 text-sm font-medium text-gray-500">
+                  Ordenar:
+                </label>
+                <select
+                  id="sort"
+                  value={sort}
+                  onChange={(e) => handleSortChange(e.target.value as DeadlineSort)}
+                  className="focus:ring-primary rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                >
+                  <option value="asc">Prazo: mais urgente</option>
+                  <option value="desc">Prazo: mais distante</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

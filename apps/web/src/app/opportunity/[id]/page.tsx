@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { SourceBadge } from '@/components/ui/SourceBadge';
@@ -63,6 +64,7 @@ function DetailSkeleton() {
 }
 
 export default function OpportunityDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const { data: opp, isLoading, isError } = useOpportunity(params.id);
 
   if (isLoading) return <DetailSkeleton />;
@@ -75,6 +77,21 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
       <Header />
 
       <div className="container-content py-8">
+        {/* Voltar */}
+        <button
+          onClick={() => router.back()}
+          className="hover:text-primary mb-4 flex items-center gap-1.5 text-sm text-gray-500 transition-colors"
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+            <path
+              fillRule="evenodd"
+              d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Voltar
+        </button>
+
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-sm text-gray-500">
           <Link href="/" className="hover:text-primary transition-colors">

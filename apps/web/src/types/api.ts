@@ -16,6 +16,7 @@ export interface Opportunity {
   value: number | null;
   areas: string[];
   summary: string;
+  createdAt: string;
   compatibility: CompatibilityResult | null;
 }
 
@@ -62,6 +63,8 @@ export interface OpportunityFilters {
   area?: string;
   type?: OpportunityFilterType;
   deadline?: DeadlineSort;
+  source?: string;
+  sourceExclude?: string;
   page?: number;
   limit?: number;
 }
