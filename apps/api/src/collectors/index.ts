@@ -18,7 +18,6 @@ import { Observatorio3SetorCollector } from './observatorio3setor.collector.js';
 import { MincCollector } from './minc.collector.js';
 import { EscolaAberta3SetorCollector } from './escola-aberta-3setor.collector.js';
 import { FundoBrasilCollector } from './fundo-brasil.collector.js';
-import { OnuMulheresCollector } from './onu-mulheres.collector.js';
 import { CaptadoresCollector } from './captadores.collector.js';
 import type { CollectorResult } from './types.js';
 
@@ -84,7 +83,7 @@ export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorR
     new MincCollector(),
     new EscolaAberta3SetorCollector(),
     new FundoBrasilCollector(),
-    new OnuMulheresCollector(),
+    // OnuMulheresCollector desativado: anti-bot
     new CaptadoresCollector(),
   ];
 
