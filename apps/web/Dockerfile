@@ -4,7 +4,12 @@ WORKDIR /app
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_API_URL=https://captaapi-production.up.railway.app
+
+# NEXT_PUBLIC_API_URL é inlined no bundle em build-time (next build), então
+# precisa estar presente ANTES do build. Configurável via build arg no Railway
+# (Settings → Build → Build Args); default aponta para a API de produção.
+ARG NEXT_PUBLIC_API_URL=https://captaapi-production.up.railway.app
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package*.json turbo.json tsconfig.json ./
 COPY packages/ ./packages/
