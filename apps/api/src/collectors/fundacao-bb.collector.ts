@@ -9,8 +9,6 @@ const SOURCE = 'FUNDACAO_BB';
 const PAGE_URL = 'https://fbb.org.br/editais-de-projetos/editais-publicos/';
 const UA = 'Mozilla/5.0 (compatible; CaptaBot/1.0; +https://capta.org.br)';
 
-const deadlineFallback = () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -18,12 +16,17 @@ function slugify(text: string): string {
     .slice(0, 60);
 }
 
-function extractBlocks(html: string): string[] {
+interface Block {
+  html: string;
+  href: string | null;
+}
+
+function extractBlocks(html: string): Block[] {
   const $ = load(html);
   $('nav, header, footer, script, style, noscript').remove();
 
   const seen = new Set<string>();
-  const blocks: string[] = [];
+  const blocks: Block[] = [];
 
   const selectors = [
     'article',
@@ -37,12 +40,29 @@ function extractBlocks(html: string): string[] {
 
   for (const sel of selectors) {
     $(sel).each((_, el) => {
-      const text = $(el).text().replace(/\s+/g, ' ').trim();
+      const $el = $(el);
+      const text = $el.text().replace(/\s+/g, ' ').trim();
       if (text.length < 80) return;
       const key = text.slice(0, 100);
       if (seen.has(key)) return;
       seen.add(key);
-      blocks.push($(el).html() ?? text);
+
+      // Extrai o primeiro href http(s) absoluto do bloco (resolve URLs
+      // relativas contra PAGE_URL). Ignora #, javascript:, mailto:, tel:.
+      let href: string | null = null;
+      $el.find('a[href]').each((_, a) => {
+        if (href) return;
+        const raw = ($(a).attr('href') ?? '').trim();
+        if (!raw || /^(#|javascript:|mailto:|tel:)/i.test(raw)) return;
+        try {
+          const abs = new URL(raw, PAGE_URL).toString();
+          if (abs.startsWith('http')) href = abs;
+        } catch {
+          /* href malformado — ignora */
+        }
+      });
+
+      blocks.push({ html: $el.html() ?? text, href });
     });
     if (blocks.length > 0) break;
   }
@@ -70,16 +90,23 @@ export class FundacaoBBCollector {
         const blocks = extractBlocks(html);
         itemsFound = blocks.length;
 
-        for (const block of blocks) {
+        for (const { html: block, href } of blocks) {
           try {
             const extracted = await enrichmentService.extractFromFreeText(
               block,
               new Date().toISOString(),
             );
             if (!extracted || !extracted.title || extracted.title.length < 10) continue;
-            if (extracted.deadline && extracted.deadline < new Date()) continue;
 
-            const sourceUrl = extracted.sourceUrl ?? `${PAGE_URL}#${slugify(extracted.title)}`;
+            // Exige prazo real e futuro — sem fallback fabricado. Sem deadline
+            // extraível, o item é descartado (não inventamos data).
+            if (!extracted.deadline) continue;
+            if (extracted.deadline < new Date()) continue;
+
+            // sourceUrl: prioriza o href real do HTML; nunca aceita texto de
+            // link ("Acessar"), string vazia ou URL relativa.
+            const llmUrl = extracted.sourceUrl.startsWith('http') ? extracted.sourceUrl : null;
+            const sourceUrl = href ?? llmUrl ?? `${PAGE_URL}#${slugify(extracted.title)}`;
 
             const mapped: MappedOpportunity = {
               title: extracted.title,
@@ -88,7 +115,7 @@ export class FundacaoBBCollector {
               sourceType: 'scraper',
               sourceUrl,
               portalUrl: PAGE_URL,
-              deadline: extracted.deadline ?? deadlineFallback(),
+              deadline: extracted.deadline,
               value: extracted.value ?? 0,
               areas: extracted.areas,
               summary: extracted.summary || extracted.title,

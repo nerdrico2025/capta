@@ -57,9 +57,13 @@ CORS_ORIGIN=https://seu-frontend.vercel.app
 ### API (Railway)
 
 1. Acesse railway.app e conecte o repositório GitHub
-2. Crie um novo serviço apontando para apps/api
+2. O build usa o Dockerfile (apps/api/Dockerfile), definido em railway.json
 3. Adicione todas as variáveis de ambiente no painel
-4. Configure o start command: node dist/server.js
+4. NÃO configure um start command manual no painel: o start vem do railway.json
+   (deploy.startCommand = "node apps/api/dist/index.js"). Um start command
+   manual sobrescreve o railway.json/Dockerfile e quebra o caminho relativo —
+   foi a causa do crash "node dist/index.js failed" (rodava a partir de /app,
+   onde dist/ não existe; o dist é gerado em /app/apps/api/dist).
 5. Adicione um serviço PostgreSQL e um Redis pelo próprio Railway
 
 ### Após o deploy
