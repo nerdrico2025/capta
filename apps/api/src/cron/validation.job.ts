@@ -1,14 +1,32 @@
 import type { PrismaClient } from '@prisma/client';
+import { classifyResponse, type LinkStatus } from '../lib/link-check.js';
 
 const STALE_THRESHOLD_DAYS = 15;
 const URL_CHECK_TIMEOUT_MS = 8_000;
-const MAX_STALE_TO_CHECK = 50; // cap HTTP checks per run
+const MAX_LINK_CHECKS = 75; // cap de checagens HTTP por run
+const LINK_RECHECK_DAYS = 7; // re-checa links não verificados há mais de 7 dias
+const MAX_BODY_BYTES = 200_000; // corpo lido para detectar parede de login
 
-export interface ValidationJobResult {
+type LinkAlertType =
+  | 'STALE_DATA'
+  | 'SCRAPE_FAILED'
+  | 'MISSING_SUMMARY'
+  | 'EXPIRED_NOT_DEACTIVATED'
+  | 'LINK_REQUIRES_AUTH'
+  | 'LINK_RELATIVE';
+
+export interface LinkCheckResult {
+  linksChecked: number;
+  linksOk: number;
+  loginWallsFlagged: number;
+  brokenFlagged: number;
+  relativeFlagged: number;
+  unreachableFlagged: number;
+}
+
+export interface ValidationJobResult extends LinkCheckResult {
   expiredDeactivated: number;
   staleAlertsFlagged: number;
-  staleFreshResolved: number; // stale alerts resolved because URL still live
-  staleDeadResolved: number; // stale alerts flagged SCRAPE_FAILED
   missingAiSummaryFlagged: number;
   errors: string[];
 }
@@ -17,9 +35,13 @@ export async function runValidationJob(prisma: PrismaClient): Promise<Validation
   const result: ValidationJobResult = {
     expiredDeactivated: 0,
     staleAlertsFlagged: 0,
-    staleFreshResolved: 0,
-    staleDeadResolved: 0,
     missingAiSummaryFlagged: 0,
+    linksChecked: 0,
+    linksOk: 0,
+    loginWallsFlagged: 0,
+    brokenFlagged: 0,
+    relativeFlagged: 0,
+    unreachableFlagged: 0,
     errors: [],
   };
 
@@ -27,102 +49,45 @@ export async function runValidationJob(prisma: PrismaClient): Promise<Validation
   try {
     const { count } = await prisma.opportunity.updateMany({
       where: { isActive: true, deadline: { lt: new Date() } },
-      data: { isActive: false },
+      data: { isActive: false, isOpen: false },
     });
     result.expiredDeactivated = count;
-
-    if (count > 0) {
-      console.log(`[validation] Deactivated ${count} expired opportunity/ies`);
-    }
+    if (count > 0) console.log(`[validation] Deactivated ${count} expired opportunity/ies`);
   } catch (err) {
-    const msg = `deactivateExpired: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `deactivateExpired: ${errMsg(err)}`;
     result.errors.push(msg);
     console.error(`[validation] ${msg}`);
   }
 
   // ── 2. Flag stale active opportunities (not updated in >N days) ───────────
-  const staleThreshold = new Date();
-  staleThreshold.setDate(staleThreshold.getDate() - STALE_THRESHOLD_DAYS);
-
+  const staleThreshold = daysAgo(STALE_THRESHOLD_DAYS);
   try {
     const stale = await prisma.opportunity.findMany({
       where: { isActive: true, updatedAt: { lt: staleThreshold } },
-      select: { id: true, sourceUrl: true, source: true },
-      take: MAX_STALE_TO_CHECK,
+      select: { id: true, source: true },
+      take: MAX_LINK_CHECKS,
     });
-
     for (const opp of stale) {
-      const existing = await prisma.dataAlert.findFirst({
-        where: { opportunityId: opp.id, type: 'STALE_DATA', resolvedAt: null },
-      });
-
-      if (!existing) {
-        await prisma.dataAlert.create({
-          data: {
-            opportunityId: opp.id,
-            type: 'STALE_DATA',
-            message: `Não atualizado há mais de ${STALE_THRESHOLD_DAYS} dias (fonte: ${opp.source})`,
-          },
-        });
-        result.staleAlertsFlagged++;
-      }
+      const created = await ensureDataAlert(
+        prisma,
+        opp.id,
+        'STALE_DATA',
+        `Não atualizado há mais de ${STALE_THRESHOLD_DAYS} dias (fonte: ${opp.source})`,
+      );
+      if (created) result.staleAlertsFlagged++;
     }
-
-    // ── 3. Try to re-verify stale opportunities via HTTP HEAD ───────────────
-    const openStaleAlerts = await prisma.dataAlert.findMany({
-      where: { type: 'STALE_DATA', resolvedAt: null },
-      include: { opportunity: { select: { id: true, sourceUrl: true } } },
-      take: MAX_STALE_TO_CHECK,
-    });
-
-    await Promise.allSettled(
-      openStaleAlerts.map(async (alert) => {
-        const url = alert.opportunity.sourceUrl;
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), URL_CHECK_TIMEOUT_MS);
-
-          const res = await fetch(url, {
-            method: 'HEAD',
-            signal: controller.signal,
-            headers: { 'User-Agent': 'CaptaBot/1.0 (+https://capta.app)' },
-          });
-          clearTimeout(timeout);
-
-          if (res.ok || res.status === 405) {
-            // URL is live (405 = HEAD not allowed but server responded — still live)
-            await prisma.dataAlert.update({
-              where: { id: alert.id },
-              data: {
-                resolvedAt: new Date(),
-                message: `URL verificada e acessível (HTTP ${res.status})`,
-              },
-            });
-            result.staleFreshResolved++;
-          } else if (res.status >= 400) {
-            // URL returned a client/server error — create or update SCRAPE_FAILED alert
-            await ensureDataAlert(
-              prisma,
-              alert.opportunity.id,
-              'SCRAPE_FAILED',
-              `URL retornou HTTP ${res.status}`,
-            );
-            result.staleDeadResolved++;
-          }
-        } catch {
-          // Network/timeout error — flag as SCRAPE_FAILED
-          await ensureDataAlert(
-            prisma,
-            alert.opportunity.id,
-            'SCRAPE_FAILED',
-            'URL inacessível (timeout ou erro de rede)',
-          );
-          result.staleDeadResolved++;
-        }
-      }),
-    );
   } catch (err) {
-    const msg = `staleCheck: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `staleFlag: ${errMsg(err)}`;
+    result.errors.push(msg);
+    console.error(`[validation] ${msg}`);
+  }
+
+  // ── 3. Link health check (escopo ampliado: stale ∪ não-checados há >7d) ────
+  try {
+    const linkResult = await checkOpportunityLinks(prisma);
+    Object.assign(result, linkResult);
+  } catch (err) {
+    const msg = `linkCheck: ${errMsg(err)}`;
     result.errors.push(msg);
     console.error(`[validation] ${msg}`);
   }
@@ -133,13 +98,17 @@ export async function runValidationJob(prisma: PrismaClient): Promise<Validation
       where: { isActive: true, aiSummary: null },
       select: { id: true },
     });
-
     for (const opp of missing) {
-      await ensureDataAlert(prisma, opp.id, 'MISSING_SUMMARY', 'Resumo de IA não gerado');
-      result.missingAiSummaryFlagged++;
+      const created = await ensureDataAlert(
+        prisma,
+        opp.id,
+        'MISSING_SUMMARY',
+        'Resumo de IA não gerado',
+      );
+      if (created) result.missingAiSummaryFlagged++;
     }
   } catch (err) {
-    const msg = `missingSummary: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `missingSummary: ${errMsg(err)}`;
     result.errors.push(msg);
     console.error(`[validation] ${msg}`);
   }
@@ -147,18 +116,164 @@ export async function runValidationJob(prisma: PrismaClient): Promise<Validation
   return result;
 }
 
+/**
+ * Verifica a saúde dos links: itens ativos que estão stale (>15d) OU cujo
+ * linkCheckedAt é nulo / mais antigo que 7 dias. Detecta paredes de login,
+ * 404/5xx, URLs relativas legadas, e marca linkStatus + linkCheckedAt.
+ * Exportada para teste isolado.
+ */
+export async function checkOpportunityLinks(
+  prisma: PrismaClient,
+  now: Date = new Date(),
+): Promise<LinkCheckResult> {
+  const r: LinkCheckResult = {
+    linksChecked: 0,
+    linksOk: 0,
+    loginWallsFlagged: 0,
+    brokenFlagged: 0,
+    relativeFlagged: 0,
+    unreachableFlagged: 0,
+  };
+
+  const staleThreshold = new Date(now.getTime() - STALE_THRESHOLD_DAYS * 86_400_000);
+  const recheckThreshold = new Date(now.getTime() - LINK_RECHECK_DAYS * 86_400_000);
+
+  const toCheck = await prisma.opportunity.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { updatedAt: { lt: staleThreshold } },
+        { linkCheckedAt: null },
+        { linkCheckedAt: { lt: recheckThreshold } },
+      ],
+    },
+    select: { id: true, sourceUrl: true },
+    orderBy: { linkCheckedAt: { sort: 'asc', nulls: 'first' } },
+    take: MAX_LINK_CHECKS,
+  });
+
+  await Promise.allSettled(toCheck.map((opp) => checkOneLink(prisma, opp, now, r)));
+  return r;
+}
+
+async function checkOneLink(
+  prisma: PrismaClient,
+  opp: { id: string; sourceUrl: string },
+  now: Date,
+  r: LinkCheckResult,
+): Promise<void> {
+  // URL relativa/não-http (legado, anterior à guarda de ingestão).
+  if (!/^https?:\/\//i.test(opp.sourceUrl)) {
+    await ensureDataAlert(
+      prisma,
+      opp.id,
+      'LINK_RELATIVE',
+      `sourceUrl não-absoluta: "${opp.sourceUrl}"`,
+    );
+    await markLink(prisma, opp.id, 'RELATIVE', now);
+    r.relativeFlagged++;
+    return;
+  }
+
+  r.linksChecked++;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), URL_CHECK_TIMEOUT_MS);
+
+    const res = await fetch(opp.sourceUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'CaptaBot/1.0 (+https://capta.app)' },
+    });
+
+    const contentType = res.headers.get('content-type');
+    // Lê o corpo (limitado) só se for HTML e 2xx — login só existe em HTML.
+    let body = '';
+    if (res.status < 400 && contentType && /text\/html|application\/xhtml/i.test(contentType)) {
+      body = (await res.text()).slice(0, MAX_BODY_BYTES);
+    }
+    clearTimeout(timeout);
+
+    const cls = classifyResponse(res.status, res.url, contentType, body);
+
+    if (cls === 'OK') {
+      await markLink(prisma, opp.id, 'OK', now);
+      await resolveOpenAlerts(prisma, opp.id);
+      r.linksOk++;
+    } else if (cls === 'REQUIRES_AUTH') {
+      await ensureDataAlert(
+        prisma,
+        opp.id,
+        'LINK_REQUIRES_AUTH',
+        `Parede de login detectada (HTTP ${res.status})`,
+      );
+      await markLink(prisma, opp.id, 'REQUIRES_AUTH', now);
+      r.loginWallsFlagged++;
+    } else {
+      await ensureDataAlert(prisma, opp.id, 'SCRAPE_FAILED', `URL retornou HTTP ${res.status}`);
+      await markLink(prisma, opp.id, 'BROKEN', now);
+      r.brokenFlagged++;
+    }
+  } catch {
+    await ensureDataAlert(
+      prisma,
+      opp.id,
+      'SCRAPE_FAILED',
+      'URL inacessível (timeout ou erro de rede)',
+    );
+    await markLink(prisma, opp.id, 'UNREACHABLE', now);
+    r.unreachableFlagged++;
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function daysAgo(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+async function markLink(
+  prisma: PrismaClient,
+  id: string,
+  linkStatus: LinkStatus,
+  now: Date,
+): Promise<void> {
+  await prisma.opportunity.update({
+    where: { id },
+    data: { linkStatus, linkCheckedAt: now },
+  });
+}
+
+// Resolve alertas de link/staleness abertos quando a URL volta a ficar saudável.
+async function resolveOpenAlerts(prisma: PrismaClient, opportunityId: string): Promise<void> {
+  await prisma.dataAlert.updateMany({
+    where: {
+      opportunityId,
+      resolvedAt: null,
+      type: { in: ['STALE_DATA', 'SCRAPE_FAILED', 'LINK_REQUIRES_AUTH', 'LINK_RELATIVE'] },
+    },
+    data: { resolvedAt: new Date(), message: 'URL verificada e acessível' },
+  });
+}
+
+/** Cria um DataAlert aberto se ainda não houver um do mesmo tipo. Retorna se criou. */
 async function ensureDataAlert(
   prisma: PrismaClient,
   opportunityId: string,
-  type: 'STALE_DATA' | 'SCRAPE_FAILED' | 'MISSING_SUMMARY' | 'EXPIRED_NOT_DEACTIVATED',
+  type: LinkAlertType,
   message: string,
-): Promise<void> {
+): Promise<boolean> {
   const existing = await prisma.dataAlert.findFirst({
     where: { opportunityId, type, resolvedAt: null },
   });
-  if (!existing) {
-    await prisma.dataAlert.create({ data: { opportunityId, type, message } });
-  }
+  if (existing) return false;
+  await prisma.dataAlert.create({ data: { opportunityId, type, message } });
+  return true;
 }

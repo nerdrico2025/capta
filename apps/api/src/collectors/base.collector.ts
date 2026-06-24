@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { CollectorResult, CollectorRunOptions, MappedOpportunity } from './types.js';
 import { enrichmentService } from '../services/enrichment.service.js';
 import { computeIsOpen } from '../lib/deadline.js';
+import { resolveSourceUrl } from '../lib/link-check.js';
 
 export abstract class BaseCollector {
   abstract readonly source: string;
@@ -74,6 +75,13 @@ export async function upsertOpportunity(
   prisma: PrismaClient,
   item: MappedOpportunity,
 ): Promise<{ id: string; aiSummary: string | null }> {
+  // Guarda de URL: resolve relativo→absoluto (base = portalUrl) e rejeita
+  // vazio / não-http antes de persistir (link inválido nunca entra no catálogo).
+  const sourceUrl = resolveSourceUrl(item.sourceUrl, item.portalUrl);
+  if (!sourceUrl) {
+    throw new Error(`sourceUrl inválida (vazia ou não-http): "${item.sourceUrl}"`);
+  }
+
   // submissionDeadline default = deadline legado; isOpen é derivado (item 4).
   const submissionDeadline = item.submissionDeadline ?? item.deadline;
   const isOpen = item.isActive && computeIsOpen(submissionDeadline, item.sourceStatus);
@@ -97,13 +105,13 @@ export async function upsertOpportunity(
   };
 
   const result = await prisma.opportunity.upsert({
-    where: { sourceUrl: item.sourceUrl },
+    where: { sourceUrl },
     update: common,
     create: {
       ...common,
       source: item.source,
       type: item.type,
-      sourceUrl: item.sourceUrl,
+      sourceUrl,
     },
     select: { id: true, aiSummary: true },
   });

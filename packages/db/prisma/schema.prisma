@@ -49,6 +49,8 @@ enum DataAlertType {
   STALE_DATA
   SCRAPE_FAILED
   MISSING_SUMMARY
+  LINK_REQUIRES_AUTH
+  LINK_RELATIVE
 }
 
 model Organization {
@@ -97,6 +99,8 @@ model Opportunity {
   fundraisingWindowEnd   DateTime? // janela de captação — fim
   sourceStatus           String? // status cru da fonte (ex: "ABERTO" | "ENCERRADO")
   isOpen                 Boolean   @default(true) // derivado: now<submissionDeadline AND status!=encerrado
+  linkCheckedAt          DateTime? // última verificação de saúde do sourceUrl
+  linkStatus             String? // OK | REQUIRES_AUTH | BROKEN | RELATIVE | UNREACHABLE
   value      Decimal         @db.Decimal(15, 2)
   areas      String[]
   summary    String
@@ -120,6 +124,7 @@ model Opportunity {
   @@index([isActive])
   @@index([isOpen])
   @@index([submissionDeadline])
+  @@index([linkCheckedAt])
   @@index([type])
   @@index([source])
 }

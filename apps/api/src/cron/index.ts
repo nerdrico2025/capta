@@ -26,7 +26,8 @@ export function registerCronJobs(app: FastifyInstance): void {
         { result },
         `[cron:validation] Finished in ${elapsed}s — ` +
           `expired=${result.expiredDeactivated} stale=${result.staleAlertsFlagged} ` +
-          `resolved=${result.staleFreshResolved} dead=${result.staleDeadResolved} ` +
+          `linksOk=${result.linksOk} login=${result.loginWallsFlagged} broken=${result.brokenFlagged} ` +
+          `relative=${result.relativeFlagged} unreachable=${result.unreachableFlagged} ` +
           `missingSummary=${result.missingAiSummaryFlagged}`,
       );
     } catch (err) {
