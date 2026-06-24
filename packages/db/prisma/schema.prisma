@@ -51,6 +51,7 @@ enum DataAlertType {
   MISSING_SUMMARY
   LINK_REQUIRES_AUTH
   LINK_RELATIVE
+  VALIDATION_FAILED
 }
 
 model Organization {

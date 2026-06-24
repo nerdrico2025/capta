@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { calculateCompatibility } from '../services/compatibility.service.js';
 import { buildOpenWhere } from '../lib/open-filter.js';
+import { recordOpportunityReport, REPORT_REASONS } from '../lib/report.js';
 
 // ─── Shared schemas ───────────────────────────────────────────────────────────
 
@@ -465,6 +466,34 @@ export async function opportunityRoutes(app: FastifyInstance) {
       });
 
       return reply.status(201).send({ id: saved.id, savedAt: saved.savedAt });
+    },
+  );
+
+  // ── POST /opportunities/:id/report ───────────────────────────────────────
+  f.post(
+    '/:id/report',
+    {
+      schema: {
+        tags: ['Opportunities'],
+        summary: 'Reporte de usuário (edital vencido, link quebrado, não é edital)',
+        params: z.object({ id: z.string() }),
+        body: z.object({ reason: z.enum(REPORT_REASONS) }),
+        response: {
+          201: z.object({ id: z.string(), reason: z.string(), alertType: z.string() }),
+          404: ErrorSchema,
+        },
+      },
+    },
+    async (req, reply) => {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      const result = await recordOpportunityReport(app.prisma, id, reason);
+      if (!result.ok) {
+        return reply.status(404).send({ error: 'Opportunity not found' });
+      }
+
+      return reply.status(201).send({ id, reason, alertType: result.type! });
     },
   );
 

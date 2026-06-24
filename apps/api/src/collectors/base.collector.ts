@@ -8,6 +8,7 @@ import {
   gateClassification,
   getMinConfidence,
 } from '../services/classification.service.js';
+import { validate, ValidationRejectedError } from '../lib/validate.js';
 
 export abstract class BaseCollector {
   abstract readonly source: string;
@@ -90,6 +91,19 @@ export async function upsertOpportunity(
   // submissionDeadline default = deadline legado; isOpen é derivado (item 4).
   const submissionDeadline = item.submissionDeadline ?? item.deadline;
   const isOpen = item.isActive && computeIsOpen(submissionDeadline, item.sourceStatus);
+
+  // Portão de validação (inválidos duros). linkStatus não é avaliado aqui:
+  // na ingestão o item é considerado fresco; a saúde do link fica com o job.
+  const verdict = validate({ title: item.title, sourceUrl, submissionDeadline, isOpen });
+  if (!verdict.valid) {
+    // Reprovado → NÃO persiste. Log estruturado com o motivo (sem DataAlert,
+    // pois não há registro persistido para referenciar).
+    console.warn(
+      '[validation] rejeitado na ingestão',
+      JSON.stringify({ source: item.source, sourceUrl, reason: verdict.reason }),
+    );
+    throw new ValidationRejectedError(verdict.reason ?? 'invalid');
+  }
 
   // Classificação EDITAL_OFICIAL × MATERIA × INDEFINIDO (gate de matéria).
   const cls = await classifyForUpsert(prisma, item, sourceUrl);

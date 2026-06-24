@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { enrichmentService } from '../services/enrichment.service.js';
 import { runIngestJob } from '../cron/ingest.job.js';
+import { computeQualityMetrics } from '../lib/quality-metrics.js';
 
 const ADMIN_KEY = process.env.ADMIN_API_KEY ?? 'dev-admin-key';
 
@@ -193,6 +194,43 @@ export async function adminRoutes(app: FastifyInstance) {
           successRateBySource,
         },
       });
+    },
+  );
+
+  // GET /admin/quality — métricas de saúde do catálogo ─────────────────────
+  f.get(
+    '/quality',
+    {
+      schema: {
+        tags: ['Admin'],
+        summary: 'Métricas de qualidade/saúde do catálogo',
+        response: {
+          200: z.object({
+            generatedAt: z.string(),
+            opportunities: z.object({
+              total: z.number(),
+              active: z.number(),
+              servable: z.number(),
+            }),
+            dataAlertsByType: z.record(z.string(), z.number()),
+            links: z.object({
+              checked: z.number(),
+              ok: z.number(),
+              activeRate: z.number(),
+            }),
+            avgUpdateLagHours: z.number(),
+            regressionLeak: z.number(),
+          }),
+          401: z.object({ error: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      if (!requireAdminKey(req)) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const metrics = await computeQualityMetrics(app.prisma);
+      return reply.send(metrics);
     },
   );
 
