@@ -1,7 +1,11 @@
 import type { PrismaClient } from '@prisma/client';
 // TransferegovCollector desativado: API pública não existe (Portal da Transparência
 // não expõe chamamentos; transferegov.sistema.gov.br e siconv.centralit.com.br estão fora do ar)
-import { SalicCollector } from './salic.collector.js';
+// SALIC desativado (decisão de produto): os projetos do SALIC "abertos para
+// captação" são projetos aprovados buscando incentivador fiscal (empresa que
+// abate imposto), não editais para OSC. salic.collector.ts é mantido para
+// histórico, mas não é registrado nem executado.
+// import { SalicCollector } from './salic.collector.js';
 import { FinepCollector } from './finep.collector.js';
 import { GifeCollector } from './gife.collector.js';
 import { ItauSocialCollector } from './itau-social.collector.js';
@@ -21,7 +25,7 @@ import { FundoBrasilCollector } from './fundo-brasil.collector.js';
 import { CaptadoresCollector } from './captadores.collector.js';
 import type { CollectorResult } from './types.js';
 
-export { SalicCollector } from './salic.collector.js';
+// export { SalicCollector } from './salic.collector.js'; // SALIC desativado — ver nota acima
 export { FinepCollector } from './finep.collector.js';
 export { GifeCollector } from './gife.collector.js';
 export { ItauSocialCollector } from './itau-social.collector.js';
@@ -58,8 +62,8 @@ function settledToResult(
 
 export async function runAllCollectors(prisma: PrismaClient): Promise<CollectorResult[]> {
   // Collectors lentos rodam isolados para não bloquear os Puppeteers
-  // SALIC: ~10 min (23k registros) | GIFE: ~5 min (75 itens × LLM)
-  const slowCollectors = [new SalicCollector(), new GifeCollector()];
+  // GIFE: ~5 min (75 itens × LLM). SALIC removido (ver nota no topo do arquivo).
+  const slowCollectors = [new GifeCollector()];
   const slowPromises = slowCollectors.map((c) =>
     c.run({ prisma }).catch((err) => {
       const error = err instanceof Error ? err.message : String(err);

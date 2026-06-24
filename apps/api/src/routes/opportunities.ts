@@ -59,7 +59,7 @@ const ListQuery = z.object({
   deadline: z.enum(['asc', 'desc']).default('asc').describe('Ordenação por prazo'),
   search: z.string().optional().describe('Busca em título e resumo'),
   source: z.string().optional().describe('Filtrar por fonte exata (ex: FINEP)'),
-  source_exclude: z.string().optional().describe('Excluir fonte (ex: SALIC)'),
+  source_exclude: z.string().optional().describe('Excluir fonte (ex: GIFE)'),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

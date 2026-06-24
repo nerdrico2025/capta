@@ -6,7 +6,7 @@ import { runMinistryScrapeJob, runPrivateScrapeJob } from './scraper.job.js';
 import { runValidationJob } from './validation.job.js';
 
 export function registerCronJobs(app: FastifyInstance): void {
-  // API collectors (SALIC, TransferGov) — daily at 03:00
+  // API collectors (GIFE, FINEP, etc.) — daily at 03:00 (SALIC desativado: ver collectors/index.ts)
   cron.schedule('0 3 * * *', async () => {
     try {
       await runIngestJob(app.prisma);

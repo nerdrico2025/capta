@@ -116,72 +116,8 @@ const MOCK_OPPORTUNITIES = [
       'Órgão: IPHAN — Restauração e preservação de bens tombados em municípios de pequeno porte.',
   },
 
-  // ── SALIC / Lei Rouanet (LEI) ────────────────────────────────────────────
-  {
-    title: 'Festival Internacional de Teatro de Rua — São Paulo 2025',
-    source: 'SALIC',
-    type: 'LEI' as const,
-    sourceType: 'api' as const,
-    sourceUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-001',
-    portalUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-001',
-    deadline: daysFromNow(2),
-    value: 920000,
-    areas: ['cultura'],
-    summary:
-      'Proponente: Instituto Arte Viva — Realização do festival com 40 companhias nacionais e internacionais.',
-  },
-  {
-    title: 'Orquestra Sinfônica Comunitária do Nordeste — Temporada 2025',
-    source: 'SALIC',
-    type: 'LEI' as const,
-    sourceType: 'api' as const,
-    sourceUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-002',
-    portalUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-002',
-    deadline: daysFromNow(7),
-    value: 450000,
-    areas: ['cultura'],
-    summary:
-      'Proponente: Associação Musical Nordestina — Temporada com 20 concertos gratuitos em 10 municípios do Nordeste.',
-  },
-  {
-    title: 'Publicação: Vozes da Floresta — Literatura Indígena Contemporânea',
-    source: 'SALIC',
-    type: 'LEI' as const,
-    sourceType: 'api' as const,
-    sourceUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-003',
-    portalUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-003',
-    deadline: daysFromNow(15),
-    value: 180000,
-    areas: ['cultura'],
-    summary:
-      'Proponente: Editora Plural — Publicação de antologia com 50 autores indígenas de 12 etnias brasileiras.',
-  },
-  {
-    title: 'Documentário — Mulheres do Sertão: Resistência e Memória',
-    source: 'SALIC',
-    type: 'LEI' as const,
-    sourceType: 'api' as const,
-    sourceUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-004',
-    portalUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-004',
-    deadline: daysFromNow(30),
-    value: 750000,
-    areas: ['cultura', 'direitos humanos'],
-    summary:
-      'Proponente: Produtora Sertão Vivo — Documentário de longa-metragem sobre a resistência de mulheres rurais.',
-  },
-  {
-    title: 'Escola de Circo Social — Rio de Janeiro',
-    source: 'SALIC',
-    type: 'LEI' as const,
-    sourceType: 'api' as const,
-    sourceUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-005',
-    portalUrl: 'https://salic.cultura.gov.br/projeto/mock-sal-005',
-    deadline: daysFromNow(60),
-    value: 320000,
-    areas: ['cultura', 'assistência social'],
-    summary:
-      'Proponente: Associação Circo Cidadão — Formação de 120 jovens em artes circenses com inclusão social.',
-  },
+  // SALIC removido (decisão de produto): projetos do SALIC buscam incentivador
+  // fiscal, não são editais para OSC. Fonte desativada — ver collectors/index.ts.
 
   // ── Privado / Fundações (PRIVADO) ────────────────────────────────────────
   {
