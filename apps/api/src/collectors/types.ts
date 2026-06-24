@@ -19,6 +19,7 @@ export interface MappedOpportunity {
   summary: string;
   pdfUrl?: string;
   isActive: boolean;
+  rawContent?: string; // HTML/texto do bloco de origem, p/ classificação estrutural
 }
 
 export interface CollectorResult {

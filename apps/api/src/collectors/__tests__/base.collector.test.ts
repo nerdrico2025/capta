@@ -21,8 +21,9 @@ function mapped(overrides: Partial<MappedOpportunity> = {}): MappedOpportunity {
 
 function fakePrisma() {
   const upsert = vi.fn(async (_args: unknown) => ({ id: '1', aiSummary: null }));
+  const findUnique = vi.fn(async () => null); // sem classificação prévia
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { prisma: { opportunity: { upsert } } as any, upsert };
+  return { prisma: { opportunity: { upsert, findUnique } } as any, upsert };
 }
 
 describe('upsertOpportunity — guarda de URL na ingestão', () => {

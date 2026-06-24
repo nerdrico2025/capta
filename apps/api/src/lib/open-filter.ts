@@ -10,11 +10,20 @@
 import type { Prisma } from '@prisma/client';
 
 export function buildOpenWhere(now: Date = new Date()): Prisma.OpportunityWhereInput {
+  // IMPORTANTE: `not`/`notIn` do Prisma NÃO incluem linhas null (NULL <> x → NULL).
+  // Para manter servíveis os registros ainda não checados (linkStatus null) e os
+  // legados (classification null), excluímos explicitamente via OR com null.
+  // Usamos `AND` (não `OR` top-level) para não colidir com o `OR` da busca textual.
   return {
     isOpen: true,
     submissionDeadline: { gt: now },
-    // Suprime cards atrás de parede de login. O `not` do Prisma é null-inclusive,
-    // então itens ainda não checados (linkStatus null) ou OK continuam aparecendo.
-    linkStatus: { not: 'REQUIRES_AUTH' },
+    AND: [
+      // Suprime parede de login; null (não checado) e OK seguem servíveis.
+      { OR: [{ linkStatus: null }, { linkStatus: { not: 'REQUIRES_AUTH' } }] },
+      // Só editais oficiais; MATERIA/INDEFINIDO ficam fora. null (legado) servível.
+      {
+        OR: [{ classification: null }, { classification: { notIn: ['MATERIA', 'INDEFINIDO'] } }],
+      },
+    ],
   };
 }

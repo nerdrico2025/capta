@@ -3,6 +3,11 @@ import type { CollectorResult, CollectorRunOptions, MappedOpportunity } from './
 import { enrichmentService } from '../services/enrichment.service.js';
 import { computeIsOpen } from '../lib/deadline.js';
 import { resolveSourceUrl } from '../lib/link-check.js';
+import {
+  classificationService,
+  gateClassification,
+  getMinConfidence,
+} from '../services/classification.service.js';
 
 export abstract class BaseCollector {
   abstract readonly source: string;
@@ -86,6 +91,9 @@ export async function upsertOpportunity(
   const submissionDeadline = item.submissionDeadline ?? item.deadline;
   const isOpen = item.isActive && computeIsOpen(submissionDeadline, item.sourceStatus);
 
+  // Classificação EDITAL_OFICIAL × MATERIA × INDEFINIDO (gate de matéria).
+  const cls = await classifyForUpsert(prisma, item, sourceUrl);
+
   const common = {
     title: item.title,
     deadline: item.deadline,
@@ -95,6 +103,9 @@ export async function upsertOpportunity(
     fundraisingWindowEnd: item.fundraisingWindowEnd ?? null,
     sourceStatus: item.sourceStatus ?? null,
     isOpen,
+    classification: cls.classification,
+    classificationScore: cls.classificationScore,
+    classifiedAt: cls.classifiedAt,
     value: item.value,
     areas: item.areas,
     summary: item.summary,
@@ -116,4 +127,44 @@ export async function upsertOpportunity(
     select: { id: true, aiSummary: true },
   });
   return result;
+}
+
+/**
+ * Classifica o item para o gate. Reusa a classificação existente (se já houver)
+ * para não re-chamar o LLM a cada ingestão. EDITAL_OFICIAL abaixo do limiar é
+ * rebaixado a INDEFINIDO (revisão manual). MATERIA/INDEFINIDO não vão ao ar.
+ */
+async function classifyForUpsert(
+  prisma: PrismaClient,
+  item: MappedOpportunity,
+  sourceUrl: string,
+): Promise<{ classification: string; classificationScore: number | null; classifiedAt: Date }> {
+  const existing = await prisma.opportunity.findUnique({
+    where: { sourceUrl },
+    select: { classification: true, classificationScore: true },
+  });
+  if (existing?.classification) {
+    return {
+      classification: existing.classification,
+      classificationScore: existing.classificationScore,
+      classifiedAt: new Date(),
+    };
+  }
+
+  const result = await classificationService.classifyItem({
+    sourceUrl,
+    portalUrl: item.portalUrl,
+    title: item.title,
+    summary: item.summary,
+    rawContent: item.rawContent,
+    pdfUrl: item.pdfUrl,
+    source: item.source,
+    sourceType: item.sourceType,
+  });
+
+  return {
+    classification: gateClassification(result, getMinConfidence()),
+    classificationScore: result.score,
+    classifiedAt: new Date(),
+  };
 }

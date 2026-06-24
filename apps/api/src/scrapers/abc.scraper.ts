@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { BaseScraper } from './base.scraper.js';
 import { buildHeaders, randomDelay, withRetry } from './utils/anti-block.js';
+import { isOfficialEditalUrl } from './utils/url-filter.js';
 import type { MappedOpportunity } from '../collectors/types.js';
 
 // Associação Brasileira de Captadores (ABC)
@@ -161,6 +162,9 @@ export class AbcScraper extends BaseScraper {
     const item = raw as RawItem;
     if (!item.title || !item.url) return null;
 
+    // Allowlist: só seções oficiais no domínio da ABC, sem imprensa/blog.
+    if (!isOfficialEditalUrl(this.source, item.url)) return null;
+
     // If no deadline found, use publication date + 30 days as estimate
     let deadline: Date | null = item.deadline ? parseDeadline(item.deadline) : null;
     if (!deadline && item.publishedAt) {
@@ -183,6 +187,7 @@ export class AbcScraper extends BaseScraper {
       areas: ['captação de recursos'],
       summary: item.description ?? 'Oportunidade via Associação Brasileira de Captadores (ABC).',
       isActive: true,
+      rawContent: item.description,
     };
   }
 }

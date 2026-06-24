@@ -120,6 +120,7 @@ export class FundacaoBBCollector {
               areas: extracted.areas,
               summary: extracted.summary || extracted.title,
               isActive: true,
+              rawContent: block,
             };
 
             const { id, aiSummary } = await upsertOpportunity(prisma, mapped);

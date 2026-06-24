@@ -116,6 +116,7 @@ export class MincCollector {
             areas: extracted.areas,
             summary: extracted.summary || extracted.title,
             isActive: true,
+            rawContent: block.html,
           };
 
           const { id, aiSummary } = await upsertOpportunity(prisma, mapped);

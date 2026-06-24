@@ -1,5 +1,6 @@
 import { BaseScraper } from './base.scraper.js';
 import { buildHeaders, randomDelay, withRetry } from './utils/anti-block.js';
+import { isOfficialEditalUrl } from './utils/url-filter.js';
 import type { MappedOpportunity } from '../collectors/types.js';
 
 // GIFE — Grupo de Institutos, Fundações e Empresas
@@ -108,6 +109,9 @@ export class GifeScraper extends BaseScraper {
     const item = raw as RawItem;
     if (!item.title || !item.url) return null;
 
+    // Allowlist: só posts no domínio do GIFE, sem caminhos de imprensa/blog.
+    if (!isOfficialEditalUrl(this.source, item.url)) return null;
+
     let deadline: Date | null = item.deadline ? parseDeadline(item.deadline) : null;
 
     // Fallback: pub date + 60 days
@@ -132,6 +136,7 @@ export class GifeScraper extends BaseScraper {
       areas: inferAreas(item.title, item.description ?? ''),
       summary: item.description ?? 'Edital privado via GIFE.',
       isActive: true,
+      rawContent: item.description,
     };
   }
 }
