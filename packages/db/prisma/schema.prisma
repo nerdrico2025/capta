@@ -89,7 +89,14 @@ model Opportunity {
   type       OpportunityType @default(EDITAL)
   sourceType String          @default("api") // "api" | "scraper" | "manual"
   sourceUrl  String          @unique
-  deadline   DateTime
+  deadline   DateTime // legado: mantido como alias de submissionDeadline (compat)
+  // Prazos distintos (normalizados em UTC, origem America/Sao_Paulo)
+  submissionDeadline     DateTime? // prazo de submissão/inscrição — base do filtro
+  executionDeadline      DateTime? // prazo de execução do projeto
+  fundraisingWindowStart DateTime? // janela de captação — início
+  fundraisingWindowEnd   DateTime? // janela de captação — fim
+  sourceStatus           String? // status cru da fonte (ex: "ABERTO" | "ENCERRADO")
+  isOpen                 Boolean   @default(true) // derivado: now<submissionDeadline AND status!=encerrado
   value      Decimal         @db.Decimal(15, 2)
   areas      String[]
   summary    String
@@ -111,6 +118,8 @@ model Opportunity {
 
   @@index([deadline])
   @@index([isActive])
+  @@index([isOpen])
+  @@index([submissionDeadline])
   @@index([type])
   @@index([source])
 }

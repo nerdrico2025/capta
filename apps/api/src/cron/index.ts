@@ -4,6 +4,7 @@ import { runIngestJob } from './ingest.job.js';
 import { runAlertsJob } from './alerts.job.js';
 import { runMinistryScrapeJob, runPrivateScrapeJob } from './scraper.job.js';
 import { runValidationJob } from './validation.job.js';
+import { runRevalidationJob } from './revalidation.job.js';
 
 export function registerCronJobs(app: FastifyInstance): void {
   // API collectors (GIFE, FINEP, etc.) — daily at 03:00 (SALIC desativado: ver collectors/index.ts)
@@ -30,6 +31,26 @@ export function registerCronJobs(app: FastifyInstance): void {
       );
     } catch (err) {
       app.log.error({ err }, '[cron:validation] Unexpected top-level error');
+    }
+  });
+
+  // Revalidação de fontes API (recheca abertos, fecha encerrados) — diário 03:30
+  cron.schedule('30 3 * * *', async () => {
+    try {
+      const r = await runRevalidationJob(app.prisma, 'api');
+      app.log.info({ r }, '[cron:revalidation:api] done');
+    } catch (err) {
+      app.log.error({ err }, '[cron:revalidation:api] Unexpected top-level error');
+    }
+  });
+
+  // Revalidação de fontes de scraping — semanal, segunda 05:30
+  cron.schedule('30 5 * * 1', async () => {
+    try {
+      const r = await runRevalidationJob(app.prisma, 'scraper');
+      app.log.info({ r }, '[cron:revalidation:scraper] done');
+    } catch (err) {
+      app.log.error({ err }, '[cron:revalidation:scraper] Unexpected top-level error');
     }
   });
 
@@ -61,6 +82,8 @@ export function registerCronJobs(app: FastifyInstance): void {
   });
 
   app.log.info('[cron] Ingest job scheduled — daily at 03:00');
+  app.log.info('[cron] Revalidation (api) scheduled — daily at 03:30');
+  app.log.info('[cron] Revalidation (scraper) scheduled — weekly Mon 05:30');
   app.log.info('[cron] Validation job scheduled — daily at 06:00');
   app.log.info('[cron] Alerts job scheduled — daily at 08:00');
   app.log.info('[cron] Ministry scraper scheduled — monthly on 1st at 04:00');

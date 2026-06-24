@@ -33,7 +33,7 @@ describe('TransferegovCollector.mapItem', () => {
     expect(result!.sourceUrl).toBe('https://transferegov.sistema.gov.br/chamamento/42');
     expect(result!.portalUrl).toBe('https://transferegov.sistema.gov.br/chamamento/42');
     expect(result!.value).toBe(500000);
-    expect(result!.areas).toEqual(['cultura', 'educacao']);
+    expect(result!.areas).toEqual(['cultura', 'educação']);
     expect(result!.pdfUrl).toBe('https://example.gov.br/edital.pdf');
     expect(result!.isActive).toBe(true);
     expect(result!.deadline).toBeInstanceOf(Date);
@@ -98,7 +98,8 @@ describe('TransferegovCollector.mapItem', () => {
       cdFinalidade: 'saude',
     };
     const result = collector.mapItem(raw);
-    expect(result!.areas).toEqual(['saude']);
+    // AREA_MAP normaliza para a forma canônica acentuada
+    expect(result!.areas).toEqual(['saúde']);
   });
 
   it('deduplicates cdFinalidade entries', () => {
@@ -150,7 +151,7 @@ describe('TransferegovCollector.mapItem', () => {
       link: 'https://transferegov.sistema.gov.br/chamamento/1',
       dtEncerramento: FUTURE_DATE,
     };
-    expect(collector.mapItem(raw)!.summary).toBe('Chamamento público via TransferGov.');
+    expect(collector.mapItem(raw)!.summary).toBe('Chamamento público via Portal da Transparência.');
   });
 
   it('trims whitespace from title and sourceUrl', () => {

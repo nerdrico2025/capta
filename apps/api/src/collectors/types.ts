@@ -8,6 +8,12 @@ export interface MappedOpportunity {
   sourceUrl: string;
   portalUrl: string;
   deadline: Date;
+  // Prazos distintos (opcionais; submissionDeadline default = deadline)
+  submissionDeadline?: Date;
+  executionDeadline?: Date;
+  fundraisingWindowStart?: Date;
+  fundraisingWindowEnd?: Date;
+  sourceStatus?: string;
   value: number;
   areas: string[];
   summary: string;

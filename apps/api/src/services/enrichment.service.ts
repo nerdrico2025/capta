@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { PrismaClient } from '@prisma/client';
 import { RateLimiter } from '../collectors/rate-limiter.js';
+import { parseBrDeadline } from '../lib/deadline.js';
 
 const MODEL = 'gpt-4o-mini';
 
@@ -144,11 +145,11 @@ Para areas, use APENAS estas opções: educação, saúde, cultura, esporte, mei
 
       if (!parsed.title?.trim()) return null;
 
-      const deadline = parsed.deadline ? new Date(parsed.deadline) : null;
+      const deadline = parseBrDeadline(parsed.deadline).date;
 
       return {
         title: String(parsed.title).trim(),
-        deadline: deadline && !isNaN(deadline.getTime()) ? deadline : null,
+        deadline,
         value: Number(parsed.value) || 0,
         areas: Array.isArray(parsed.areas) ? parsed.areas.map(String) : [],
         type: parsed.type === 'PRIVADO' ? 'PRIVADO' : 'EDITAL',
@@ -172,32 +173,8 @@ function extractFromFreeTextFallback(text: string, _postDate: string): Extracted
   if (!titleMatch) return null;
   const title = titleMatch[1].trim();
 
-  // Prazo: "até DD de mês de AAAA" ou "até DD/MM/AAAA"
-  const MONTH: Record<string, string> = {
-    janeiro: '01',
-    fevereiro: '02',
-    março: '03',
-    marco: '03',
-    abril: '04',
-    maio: '05',
-    junho: '06',
-    julho: '07',
-    agosto: '08',
-    setembro: '09',
-    outubro: '10',
-    novembro: '11',
-    dezembro: '12',
-  };
-  let deadline: Date | null = null;
-  const mPt = text.match(/até\s+(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
-  if (mPt) {
-    const mm = MONTH[mPt[2].toLowerCase()];
-    if (mm) deadline = new Date(`${mPt[3]}-${mm}-${mPt[1].padStart(2, '0')}`);
-  }
-  if (!deadline) {
-    const mSlash = text.match(/até\s+(\d{2})\/(\d{2})\/(\d{4})/i);
-    if (mSlash) deadline = new Date(`${mSlash[3]}-${mSlash[2]}-${mSlash[1]}`);
-  }
+  // Prazo: normalizado via parseBrDeadline (pt-BR variado + timezone BRT→UTC)
+  const deadline = parseBrDeadline(text).date;
 
   // Valor: "R$ X.XXX" ou "até R$ X mil"
   let value = 0;

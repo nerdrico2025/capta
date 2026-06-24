@@ -155,13 +155,13 @@ describe('SalicCollector.mapItem', () => {
     expect(collector.mapItem(raw)!.areas).toContain('cultura');
   });
 
-  it('returns empty areas when segmento is absent', () => {
+  it('always returns ["cultura"] (Lei Rouanet financia só projetos culturais)', () => {
     const raw = {
       PRONAC: '001',
       nome: 'Projeto Y',
       data_termino: FUTURE_DATE,
     };
-    expect(collector.mapItem(raw)!.areas).toEqual([]);
+    expect(collector.mapItem(raw)!.areas).toEqual(['cultura']);
   });
 
   it('includes flat proponente string in summary', () => {

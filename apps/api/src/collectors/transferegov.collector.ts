@@ -1,6 +1,7 @@
 import { BaseCollector } from './base.collector.js';
 import { RateLimiter } from './rate-limiter.js';
 import type { CollectorConfig, MappedOpportunity } from './types.js';
+import { parseBrDeadline, isSourceClosed } from '../lib/deadline.js';
 
 // Portal da Transparência — Chamamentos Públicos
 // Docs: https://api.portaldatransparencia.gov.br/swagger-ui/index.html
@@ -186,13 +187,19 @@ export class TransferegovCollector extends BaseCollector {
     const title = item.titulo ?? item.nome ?? item.nmPrograma;
     if (!title?.trim()) return null;
 
-    // URL — necessária como chave única no banco
+    // URL — chave única. Prioriza o link da PÁGINA do chamamento; urlEdital
+    // costuma ser o PDF do edital e vai para pdfUrl (link de PDF como sourceUrl
+    // quebra a navegação e gera links inacessíveis para o usuário).
     const sourceUrl =
-      item.linkEdital?.trim() ?? item.urlEdital?.trim() ?? item.link?.trim() ?? item.url?.trim();
+      item.linkEdital?.trim() ?? item.link?.trim() ?? item.url?.trim() ?? item.urlEdital?.trim();
     if (!sourceUrl) return null;
 
-    // Prazo de inscrição
-    const deadline = parseDate(
+    // Status cru da fonte — não inferir só pela data (item 3)
+    const sourceStatus = item.situacao ?? item.situacaoChamamento ?? item.dsSituacao;
+    if (isSourceClosed(sourceStatus)) return null;
+
+    // Prazo de inscrição (normalizado em UTC, origem America/Sao_Paulo)
+    const { date: deadline } = parseBrDeadline(
       item.dataEncerramento ??
         item.dtEncerramento ??
         item.dataEncerramentoInscricao ??
@@ -209,28 +216,16 @@ export class TransferegovCollector extends BaseCollector {
       sourceUrl,
       portalUrl: sourceUrl,
       deadline,
+      submissionDeadline: deadline,
+      sourceStatus,
       value: parseValue(item.valorTotal ?? item.vlMaximo ?? item.vlTotal ?? item.valor),
       areas: buildAreas(item),
       summary: buildSummary(item),
-      pdfUrl: item.urlEdital !== item.linkEdital ? (item.urlEdital ?? undefined) : undefined,
+      pdfUrl:
+        item.urlEdital && item.urlEdital.trim() !== sourceUrl ? item.urlEdital.trim() : undefined,
       isActive: true,
     };
   }
-}
-
-function parseDate(raw: string | undefined): Date | null {
-  if (!raw) return null;
-  // Suporta ISO 8601 (2025-12-31) e DD/MM/AAAA
-  let d: Date;
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-    d = new Date(raw);
-  } else if (/^\d{2}\/\d{2}\/\d{4}/.test(raw)) {
-    const [dd, mm, yyyy] = raw.split('/');
-    d = new Date(`${yyyy}-${mm}-${dd}`);
-  } else {
-    d = new Date(raw);
-  }
-  return isNaN(d.getTime()) ? null : d;
 }
 
 function parseValue(raw: number | string | undefined): number {

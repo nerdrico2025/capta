@@ -23,10 +23,12 @@
     "@fastify/swagger-ui": "^4.1.0",
     "@types/cheerio": "^0.22.35",
     "cheerio": "^1.2.0",
+    "chrono-node": "^2.7.7",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "fastify-type-provider-zod": "^1.2.0",
     "ioredis": "^5.4.1",
+    "luxon": "^3.5.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "openai": "^6.41.0",
@@ -36,6 +38,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/luxon": "^3.4.2",
     "@types/node": "^22.9.0",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.17",

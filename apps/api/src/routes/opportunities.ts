@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { calculateCompatibility } from '../services/compatibility.service.js';
+import { buildOpenWhere } from '../lib/open-filter.js';
 
 // ─── Shared schemas ───────────────────────────────────────────────────────────
 
@@ -210,7 +211,8 @@ export async function opportunityRoutes(app: FastifyInstance) {
           : undefined;
 
       const where: Prisma.OpportunityWhereInput = {
-        isActive: true,
+        // FILTRO DURO centralizado: nunca servir registros não-abertos.
+        ...buildOpenWhere(),
         ...(sourceFilter !== undefined && { source: sourceFilter }),
         ...(areas?.length && { areas: { hasSome: areas } }),
         ...(type && { type: type.toUpperCase() as Prisma.EnumOpportunityTypeFilter }),
@@ -306,11 +308,13 @@ export async function opportunityRoutes(app: FastifyInstance) {
           sourceType: 'manual',
           sourceUrl: officialLink,
           deadline: new Date(deadline),
+          submissionDeadline: new Date(deadline),
           value: valueInBRL,
           areas,
           summary: description.slice(0, 500),
           portalUrl: portalLink ?? officialLink,
           isActive: false,
+          isOpen: false, // pendente de revisão — não servir até aprovação
         },
         select: { id: true },
       });
@@ -394,7 +398,10 @@ export async function opportunityRoutes(app: FastifyInstance) {
       const rawCnpj = req.headers['x-org-cnpj'];
 
       const [opp, org] = await Promise.all([
-        app.prisma.opportunity.findUnique({ where: { id: req.params.id } }),
+        // Filtro duro: detalhe nunca serve registro encerrado (404).
+        app.prisma.opportunity.findFirst({
+          where: { id: req.params.id, ...buildOpenWhere() },
+        }),
         rawCnpj
           ? app.prisma.organization.findUnique({ where: { cnpj: normalizeCnpj(rawCnpj) } })
           : Promise.resolve(null),
